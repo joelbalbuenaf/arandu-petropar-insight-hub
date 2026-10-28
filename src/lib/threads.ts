@@ -18,7 +18,12 @@ export function saveThreads(threads: Thread[]) {
 }
 
 export function createThread(): Thread {
-  const t: Thread = { id: crypto.randomUUID().slice(0, 8), title: "Nueva conversación", updatedAt: Date.now(), messages: [] };
+  const t: Thread = {
+    id: crypto.randomUUID().slice(0, 8),
+    title: "Nueva conversación",
+    updatedAt: Date.now(),
+    messages: [],
+  };
   saveThreads([t, ...loadThreads()]);
   return t;
 }
@@ -35,9 +40,12 @@ export function ensureThread(id: string): Thread {
 export function updateThread(id: string, messages: UIMessage[]) {
   const all = loadThreads();
   const firstText = messages.find((m) => m.role === "user")?.parts.find((p) => p.type === "text");
-  const title = firstText && "text" in firstText ? firstText.text.slice(0, 48) : "Nueva conversación";
+  const title =
+    firstText && "text" in firstText ? firstText.text.slice(0, 48) : "Nueva conversación";
   saveThreads(
-    all.map((t) => (t.id === id ? { ...t, messages, title, updatedAt: Date.now() } : t)).sort((a, b) => b.updatedAt - a.updatedAt),
+    all
+      .map((t) => (t.id === id ? { ...t, messages, title, updatedAt: Date.now() } : t))
+      .sort((a, b) => b.updatedAt - a.updatedAt),
   );
 }
 

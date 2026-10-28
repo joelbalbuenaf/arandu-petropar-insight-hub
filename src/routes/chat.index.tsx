@@ -6,7 +6,11 @@ export const Route = createFileRoute("/chat/")({
   head: () => ({
     meta: [
       { title: "Habla con tus datos · Arandu · Petropar" },
-      { name: "description", content: "Conversa con Arandu, el agente de IA que responde preguntas analíticas de Petropar." },
+      {
+        name: "description",
+        content:
+          "Conversa con Arandu, el agente de IA que responde preguntas analíticas de Petropar.",
+      },
       { property: "og:title", content: "Habla con tus datos · Arandu" },
       { property: "og:description", content: "Agente de IA analítico de Petropar." },
       { property: "og:type", content: "website" },
