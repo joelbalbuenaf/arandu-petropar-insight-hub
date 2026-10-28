@@ -17,6 +17,7 @@ import {
   type FiltrosVentas,
 } from "@/lib/data";
 import type { ParametrosGrafico } from "@/lib/charts";
+import { oportunidades } from "@/lib/petropar-data";
 import { ejecutarHerramienta } from "./tools";
 import type { EscritorArandu } from "./writer";
 
@@ -35,15 +36,18 @@ type Contexto = {
 function leerContexto(pregunta: string): Contexto {
   const texto = normalizar(pregunta);
   const depto = nombresDepartamentos.find((d) => texto.includes(normalizar(d)));
+  const liquidosMencionados = [/diesel|gasoil/, /nafta/, /etanol|alcohol/].filter((r) =>
+    r.test(texto),
+  );
   const producto: FiltroProducto = /\bglp\b|gas licuado/.test(texto)
     ? "glp"
-    : /diesel|gasoil/.test(texto)
-      ? "diesel"
-      : /nafta/.test(texto)
-        ? "naftas"
-        : /etanol|alcohol/.test(texto)
-          ? "etanol"
-          : "liquidos";
+    : liquidosMencionados.length !== 1
+      ? "liquidos"
+      : /diesel|gasoil/.test(texto)
+        ? "diesel"
+        : /nafta/.test(texto)
+          ? "naftas"
+          : "etanol";
   const preset = /2025|ano pasado/.test(texto)
     ? presetsPeriodo.find((p) => p.id === "a2025")
     : /trimestre/.test(texto)
@@ -90,6 +94,20 @@ function tabla(columnas: string[], filas: (string | number)[][]) {
 }
 
 const intenciones: { patron: RegExp; plan: (c: Contexto) => Plan }[] = [
+  {
+    patron:
+      /no podemos|que analisis no|que datos (faltan|necesit|hacen falta)|datos (faltan|necesitamos)/,
+    plan: () => ({
+      pasos: [],
+      sugerencias: [
+        "Prepara un resumen ejecutivo con tres oportunidades, evidencia y próximos pasos.",
+        "¿Qué alertas comerciales atenderías primero?",
+        "Evalúa un sitio nuevo en Luque.",
+      ],
+      componer: () =>
+        `Con los datos de esta demo **no podemos** todavía:\n\n- Analizar **ventas reales por estación ni por cliente** (los datos de estaciones y prospectos son ilustrativos).\n- Medir **elasticidad precio-volumen**: falta historia de precios por zona y de la competencia.\n- Validar el **forecast**: hay un solo año de estacionalidad; faltan contratos, zafra y clima.\n- Explicar **causas** de caídas: faltan datos de clientes, crédito y condiciones comerciales.\n- Conectar **SAP / FUELFACS**: no hay integración; requiere acceso autorizado y definiciones de negocio.\n\nCon esas fuentes, las mismas herramientas de Arandu funcionarían sobre datos reales.`,
+    }),
+  },
   {
     patron:
       /proyec|forecast|pronost|escenario|cierre del ano|simula|octubre a diciembre|cuarto trimestre/,
@@ -169,14 +187,15 @@ const intenciones: { patron: RegExp; plan: (c: Contexto) => Plan }[] = [
         }));
         const sobre = ops.filter((o) => o.desvio > 0).sort((a, b) => b.desvio - a.desvio);
         const total = ops.reduce((s, o) => s + o.desvio, 0);
-        return `**${sobre.length} de ${ops.length} operadores gastan por encima de su presupuesto**; el desvío neto es de **USD ${fmt(total)} M**. El mayor es **${sobre[0]?.operador}** (USD ${fmt(sobre[0]?.desvio)} M, ${signo(redondear(((sobre[0]?.desvio ?? 0) / (sobre[0]?.presupuestoMUSD ?? 1)) * 100, 1))}).\n\n${tabla(
-          ["Operador", "Presupuesto", "Ejecutado", "Desvío", "Cumplimiento meta"],
+        return `**${sobre.length} de ${ops.length} operadores gastan por encima de su presupuesto**; los sobre-gastos suman **USD ${fmt(sobre.reduce((t, o) => t + o.desvio, 0))} M** y se compensan con sub-ejecuciones de otros operadores (desvío neto: USD ${fmt(total)} M). El mayor es **${sobre[0]?.operador}** (USD ${fmt(sobre[0]?.desvio)} M, ${signo(redondear(((sobre[0]?.desvio ?? 0) / (sobre[0]?.presupuestoMUSD ?? 1)) * 100, 1))}).\n\n${tabla(
+          ["Operador", "Presupuesto", "Ejecutado", "Desvío", "Cumplimiento meta", "Margen"],
           ops.map((o) => [
             o.operador,
             `USD ${o.presupuestoMUSD} M`,
             `USD ${o.ejecutadoMUSD} M`,
             `${o.desvio > 0 ? "+" : ""}${o.desvio}`,
             `${fmt(o.cumplimientoPct)}%`,
+            `${fmt(o.margenPct)}%`,
           ]),
         )}\n\n**Lectura:** Distribuidores Mayoristas combina sobre-ejecución con cumplimiento de 91%: es el desvío a revisar primero. Sector Público y Clientes Industriales gastan por debajo de lo previsto.\n\n*El presupuesto es de costos comerciales, no de ingresos.*`;
       },
@@ -200,12 +219,30 @@ const intenciones: { patron: RegExp; plan: (c: Contexto) => Plan }[] = [
           const ops = r["consultar_operadores"].operadores as typeof operadoresDetalle;
           const orden = /margen/.test(c.texto)
             ? [...ops].sort((a, b) => b.margenPct - a.margenPct)
-            : /crecimiento|ordena/.test(c.texto)
-              ? [...ops].sort((a, b) => b.litrosMl - a.litrosMl)
-              : [...ops].sort((a, b) => a.cumplimientoPct - b.cumplimientoPct);
+            : /productividad|por estacion/.test(c.texto)
+              ? [...ops].sort((a, b) => b.estaciones - a.estaciones)
+              : /crecimiento|ordena/.test(c.texto)
+                ? [...ops].sort((a, b) => b.litrosMl - a.litrosMl)
+                : [...ops].sort((a, b) => a.cumplimientoPct - b.cumplimientoPct);
           const bajo = ops.filter((o) => o.cumplimientoPct < 100);
           const may = ops.find((o) => o.operador === "Distribuidores Mayoristas");
-          let out = `**${bajo.length} operadores están bajo su meta:** ${bajo.map((o) => `${o.operador} (${fmt(o.cumplimientoPct)}%)`).join(", ")}.\n\n${tabla(
+          const red = ops.filter((o) => o.estaciones > 0);
+          const ind = ops.find((o) => o.operador === "Grandes Clientes Industriales");
+          const mejorMargen = [...ops].sort((a, b) => b.margenPct - a.margenPct)[0];
+          const apertura = /industrial/.test(c.texto)
+            ? `**Grandes Clientes Industriales** es el canal más sano: ${fmt(ind?.cumplimientoPct)}% de su meta, crecimiento de ${signo(ind?.crecimientoPct)} y el mejor margen (${fmt(ind?.margenPct)}%). La oportunidad es ampliar acuerdos, siempre que el abastecimiento acompañe.`
+            : /margen/.test(c.texto)
+              ? `**${mejorMargen?.operador}** tiene el mejor margen (**${fmt(mejorMargen?.margenPct)}%**); el más bajo es Distribuidores Mayoristas (${fmt(may?.margenPct)}%), que además es el de mayor volumen.`
+              : /productividad|por estacion/.test(c.texto)
+                ? `Entre las redes con estaciones, **${[...red].sort((a, b) => b.litrosMl / b.estaciones - a.litrosMl / a.estaciones)[0]?.operador}** es la más productiva: ${red.map((o) => `${o.operador} ${fmt(o.litrosMl / o.estaciones, 2)} ML/estación`).join(" · ")}.`
+                : /falta|100/.test(c.texto)
+                  ? `Para llegar al 100% faltan: ${bajo.map((o) => `**${o.operador}** ${fmt(Math.abs(o.brechaMl))} ML`).join(", ")} (total ${fmt(bajo.reduce((t, o) => t + Math.abs(o.brechaMl), 0))} ML).`
+                  : /ordena/.test(c.texto)
+                    ? `Por volumen lidera **${orden[0]?.operador}** (${fmt(orden[0]?.litrosMl)} ML); por crecimiento, **${[...ops].sort((a, b) => b.crecimientoPct - a.crecimientoPct)[0]?.operador}** (${signo(ind?.crecimientoPct)}). Mayoristas es el único que cae.`
+                    : /mayorista/.test(c.texto)
+                      ? `**Distribuidores Mayoristas** vendió ${fmt(may?.litrosMl)} ML contra una meta de ${fmt(may?.metaMl)} ML: brecha de **${fmt(Math.abs(may?.brechaMl ?? 0))} ML** (${fmt(may?.cumplimientoPct)}%) y caída de ${signo(may?.crecimientoPct)}. Recuperar la mitad de la brecha sumaría ~${fmt(Math.abs(may?.brechaMl ?? 0) / 2)} ML.`
+                      : `**${bajo.length} operadores están bajo su meta:** ${bajo.map((o) => `${o.operador} (${fmt(o.cumplimientoPct)}%)`).join(", ")}.`;
+          let out = `${apertura}\n\n${tabla(
             ["Operador", "Volumen", "Meta", "Brecha", "Crec.", "Margen", "ML/estación"],
             orden.map((o) => [
               o.operador,
@@ -370,7 +407,7 @@ const intenciones: { patron: RegExp; plan: (c: Contexto) => Plan }[] = [
             `${fmt(p.stockM3, 0)} m³`,
             `${fmt(p.ocupacionPct)}%`,
           ]),
-        )}\n\n**Riesgo:** el diésel está bajo el umbral de 20 días y el río Paraguay está en ${l.nivelRioActualM} m, lo que encarece y demora las importaciones fluviales justo antes de la demanda de la siembra (octubre).`;
+        )}\n\n**Riesgo:** el diésel está bajo el umbral de 20 días y el río Paraguay está en ${fmt(l.nivelRioActualM, 2)} m, lo que encarece y demora las importaciones fluviales justo antes de la demanda de la siembra (octubre).`;
       },
     }),
   },
@@ -402,7 +439,7 @@ const intenciones: { patron: RegExp; plan: (c: Contexto) => Plan }[] = [
     }),
   },
   {
-    patron: /rio|bajante|calado|nivel/,
+    patron: /\brio\b|bajante|calado/,
     plan: () => ({
       pasos: [{ herramienta: "consultar_logistica", input: {} }, grafico({ grafico: "nivel_rio" })],
       sugerencias: [
@@ -413,13 +450,13 @@ const intenciones: { patron: RegExp; plan: (c: Contexto) => Plan }[] = [
       componer: (r) => {
         const l = r["consultar_logistica"];
         const min = [...l.mensual].sort((a: any, b: any) => a.nivelRioM - b.nivelRioM)[0];
-        return `El río Paraguay está en **${l.nivelRioActualM} m**, ${min.nivelRioM === l.nivelRioActualM ? "el nivel más bajo" : "cerca del mínimo"} de la serie.\n\n**Riesgos:**\n- **Abastecimiento:** menos calado = barcazas con menos carga y más viajes; las importaciones fluviales cayeron a ${l.mensual.at(-1).fluvial} mil m³.\n- **Costos:** el reemplazo por camión encarece el m³ importado.\n- **Stock:** el diésel está en ${l.kpis.stockDiasDiesel} días, bajo el umbral de 20.\n\n**Acciones:** adelantar compras, priorizar diésel para la siembra y coordinar cupos terrestres.`;
+        return `El río Paraguay está en **${fmt(l.nivelRioActualM, 2)} m**, ${min.nivelRioM === l.nivelRioActualM ? "el nivel más bajo" : "cerca del mínimo"} de la serie.\n\n**Riesgos:**\n- **Abastecimiento:** menos calado = barcazas con menos carga y más viajes; las importaciones fluviales cayeron a ${l.mensual.at(-1).fluvial} mil m³.\n- **Costos:** el reemplazo por camión encarece el m³ importado.\n- **Stock:** el diésel está en ${l.kpis.stockDiasDiesel} días, bajo el umbral de 20.\n\n**Acciones:** adelantar compras, priorizar diésel para la siembra y coordinar cupos terrestres.`;
       },
     }),
   },
   {
     patron: /precio|brent|tarifa/,
-    plan: () => ({
+    plan: (c) => ({
       pasos: [
         { herramienta: "consultar_mercado", input: {} },
         grafico({ grafico: "precios", desde: "2025-01" }),
@@ -433,6 +470,9 @@ const intenciones: { patron: RegExp; plan: (c: Contexto) => Plan }[] = [
         const p = r["consultar_mercado"].precios;
         const u = p.at(-1);
         const ini = p.find((x: any) => x.mes === "Jul 26");
+        const brent = `Entre julio y septiembre el Brent pasó de USD ${ini.brent} a **USD ${u.brent}/bbl** (${signo(redondear(((u.brent - ini.brent) / ini.brent) * 100, 1))}).`;
+        if (/brent/.test(c.texto))
+          return `${brent} Petropar ajustó el diésel Gs 100 (a Gs ${fmt(u.petroparDiesel, 0)}/L) y el mercado Gs ${fmt(u.mercadoDiesel - ini.mercadoDiesel, 0)}: la brecha a favor de Petropar quedó en ${fmt(((u.mercadoDiesel - u.petroparDiesel) / u.mercadoDiesel) * 100)}%.\n\n**Lectura:** si el Brent sigue subiendo, sostener esa brecha comprime el margen.`;
         return `En septiembre 2026 el diésel Petropar está en **Gs ${fmt(u.petroparDiesel, 0)}/L**, **${fmt(((u.mercadoDiesel - u.petroparDiesel) / u.mercadoDiesel) * 100)}% por debajo** del promedio de mercado (Gs ${fmt(u.mercadoDiesel, 0)}/L).\n\nEntre julio y septiembre el Brent subió de USD ${ini.brent} a **USD ${u.brent}/bbl** (${signo(redondear(((u.brent - ini.brent) / ini.brent) * 100, 1))}); Petropar ajustó Gs 100 y el mercado Gs ${fmt(u.mercadoDiesel - ini.mercadoDiesel, 0)}.\n\n**Lectura:** la brecha de precio sostiene la participación (31%), pero comprime el margen si el Brent sigue subiendo.`;
       },
     }),
@@ -459,7 +499,7 @@ const intenciones: { patron: RegExp; plan: (c: Contexto) => Plan }[] = [
     }),
   },
   {
-    patron: /glp|gas/,
+    patron: /\bglp\b|\bgas\b/,
     plan: (c) => ({
       pasos: [
         ventas({ ...c.filtros, producto: "glp", desde: "2025-01" }, "mes"),
@@ -478,7 +518,7 @@ const intenciones: { patron: RegExp; plan: (c: Contexto) => Plan }[] = [
     }),
   },
   {
-    patron: /departamento|region|territorio|zona|geograf|concentra|priorizar.*crecer/,
+    patron: /departamento|region|territorio|zona|geograf|concentra|priorizar.*crecer|\bdonde\b/,
     plan: (c) => ({
       pasos: [
         ventas({ ...c.filtros, depto: undefined }, "departamento"),
@@ -500,6 +540,23 @@ const intenciones: { patron: RegExp; plan: (c: Contexto) => Plan }[] = [
         const d = v.desglose as any[];
         const conMeta = d.filter((x) => x.cumplimientoPct !== null);
         const brechas = [...conMeta].sort((a, b) => a.brecha - b.brecha).slice(0, 3);
+        const peores = [...conMeta]
+          .sort((a, b) => (a.cumplimientoPct ?? 0) - (b.cumplimientoPct ?? 0))
+          .slice(0, 3);
+        if (/brecha|prioriz|crecer/.test(c.texto))
+          return `${/prioriz|crecer/.test(c.texto) ? "Priorizaría" : "La mayor brecha está en"} **${peores.map((b) => `${b.depto} (${fmt(b.cumplimientoPct)}% de la meta, faltan ${fmt(Math.abs(b.brecha))} ML)`).join(", ")}**${/prioriz|crecer/.test(c.texto) ? ": son los departamentos más lejos de su meta, donde cerrar la brecha suma volumen con la red que ya existe" : ""}.\n\n${tabla(
+            ["Departamento", "Volumen", "Meta", "Cumplimiento", "Var. interanual"],
+            [...conMeta]
+              .sort((a, b) => (a.cumplimientoPct ?? 0) - (b.cumplimientoPct ?? 0))
+              .slice(0, 8)
+              .map((x) => [
+                x.depto,
+                `${fmt(x.valor)} ${v.unidad}`,
+                fmt(x.meta),
+                `${fmt(x.cumplimientoPct)}%`,
+                signo(x.variacionInteranualPct),
+              ]),
+          )}`;
         return `**${d[0].depto}** concentra el **${fmt(d[0].participacionPct)}%** del volumen (${fmt(d[0].valor)} ${v.unidad}), seguido de ${d[1].depto} (${fmt(d[1].participacionPct)}%) y ${d[2].depto} (${fmt(d[2].participacionPct)}%).\n\n${tabla(
           ["Departamento", "Volumen", "Meta", "Cumplimiento", "Var. interanual"],
           d
@@ -545,7 +602,44 @@ const intenciones: { patron: RegExp; plan: (c: Contexto) => Plan }[] = [
     }),
   },
   {
-    patron: /alerta|atender|atencion|urgente|riesgo|resumen ejecutivo|oportunidad|prioriz|que hago/,
+    patron: /^(hola|buenas|buen dia)\b|quien (sos|eres)|que (podes|puedes|sabes) hacer|ayuda/,
+    plan: () => ({
+      pasos: [],
+      sugerencias: [
+        "¿Qué alertas comerciales atenderías primero?",
+        "¿Qué departamento concentra más volumen?",
+        "Proyecta las ventas de combustibles líquidos para octubre a diciembre y explica las limitaciones.",
+      ],
+      componer: () =>
+        '¡Hola! Soy **Arandu** ("sabiduría" en guaraní), el agente analítico del Hub de Petropar. Puedo responder sobre **ventas, metas, departamentos, operadores, presupuesto, forecast, logística, precios, competencia, estaciones, prospectos B2B y evaluación de sitios**, con cifras, tablas y gráficos.\n\nAhora estoy en **modo demo**: entiendo preguntas con reglas simples y uso datos ficticios. Con una API key de Claude puedo razonar libremente y recordar la conversación.',
+    }),
+  },
+  {
+    patron: /resumen ejecutivo|oportunidades/,
+    plan: () => ({
+      pasos: [{ herramienta: "detectar_alertas", input: {} }, ventas(FILTROS_POR_DEFECTO, "total")],
+      sugerencias: [
+        "Analiza la brecha de Distribuidores Mayoristas y propone acciones con su impacto en ML.",
+        "Proyecta las ventas de combustibles líquidos para octubre a diciembre y explica las limitaciones.",
+        "Propón indicadores para monitorear el plan comercial.",
+      ],
+      componer: (r) => {
+        const v = r["consultar_ventas"];
+        const a = r["detectar_alertas"];
+        return `**Resumen ejecutivo · Ene–Sep 2026.** Se vendieron **${fmt(v.actual)} ML** de combustibles líquidos (${signo(v.variacionInteranualPct)} interanual), el **${fmt(v.cumplimientoPct)}%** de la meta. Hay ${a.alertas.length} alertas activas, ${a.alertas.filter((x: any) => x.severidad === "alta").length} de severidad alta.\n\n**Tres oportunidades:**\n\n${oportunidades
+          .slice(0, 3)
+          .map(
+            (o, i) =>
+              `${i + 1}. **${o.titulo}** (prioridad ${o.prioridad.toLowerCase()}). *Evidencia:* ${o.evidencia}. *Próximo paso:* ${o.accion}`,
+          )
+          .join(
+            "\n",
+          )}\n\n**Riesgo a vigilar:** el río Paraguay en mínimos y el stock de diésel bajo 20 días antes de la siembra.`;
+      },
+    }),
+  },
+  {
+    patron: /alerta|atender|atencion|urgente|riesgo|prioriz|que hago/,
     plan: () => ({
       pasos: [{ herramienta: "detectar_alertas", input: {} }],
       sugerencias: [
@@ -605,19 +699,6 @@ const intenciones: { patron: RegExp; plan: (c: Contexto) => Plan }[] = [
     }),
   },
   {
-    patron: /no podemos|limitacion|faltan|que datos|validar/,
-    plan: () => ({
-      pasos: [],
-      sugerencias: [
-        "Prepara un resumen ejecutivo con tres oportunidades, evidencia y próximos pasos.",
-        "¿Qué alertas comerciales atenderías primero?",
-        "Evalúa un sitio nuevo en Luque.",
-      ],
-      componer: () =>
-        `Con los datos de esta demo **no podemos** todavía:\n\n- Analizar **ventas reales por estación ni por cliente** (los datos de estaciones y prospectos son ilustrativos).\n- Medir **elasticidad precio-volumen**: falta historia de precios por zona y de la competencia.\n- Validar el **forecast**: hay un solo año de estacionalidad; faltan contratos, zafra y clima.\n- Explicar **causas** de caídas: faltan datos de clientes, crédito y condiciones comerciales.\n- Conectar **SAP / FUELFACS**: no hay integración; requiere acceso autorizado y definiciones de negocio.\n\nCon esas fuentes, las mismas herramientas de Arandu funcionarían sobre datos reales.`,
-    }),
-  },
-  {
     patron: /mix|composicion|participacion de producto/,
     plan: (c) => ({
       pasos: [
@@ -649,7 +730,7 @@ const intenciones: { patron: RegExp; plan: (c: Contexto) => Plan }[] = [
   },
   {
     patron:
-      /crecio|crecimiento|mayor venta|mejor mes|caida|cayo|baj|evolucion|mensual|grafica|ventas|vendimos|volumen/,
+      /crecio|crecimiento|mayor venta|mejor mes|caida|cayo|baj|evolucion|mensual|grafica|ventas|vendimos|volumen|como (viene|vienen|va|van|estamos)/,
     plan: (c) => {
       const prods = ["diesel", "naftas", "etanol"] as const;
       return {
@@ -688,7 +769,14 @@ const intenciones: { patron: RegExp; plan: (c: Contexto) => Plan }[] = [
           const crec = porProd
             .map((p, i) => ({ p: prods[i] as FiltroProducto, v: p.variacionInteranualPct }))
             .sort((a, b) => (b.v ?? -99) - (a.v ?? -99));
-          return `**${nombreFiltroProducto[serie.filtros.producto as FiltroProducto]}**${serie.filtros.depto ? ` en ${serie.filtros.depto}` : ""}, ${etiquetaRango(serie.filtros.desde, serie.filtros.hasta)}: **${fmt(serie.actual)} ${serie.unidad}**, ${signo(serie.variacionInteranualPct)} interanual.\n\n- **Mejor mes:** ${max.mes} (${fmt(max.valor)} ${serie.unidad}).\n- **Meses con caída vs. el mes anterior:** ${caidas.length ? caidas.map((m) => m.mes).join(", ") : "ninguno"}.\n- **Crecimiento interanual por producto:** ${crec.map((x) => `${nombreFiltroProducto[x.p]} ${signo(x.v)}`).join(" · ")}. El que más creció fue **${nombreFiltroProducto[crec[0]?.p ?? "diesel"]}**.\n\nLas caídas de febrero y junio coinciden con menos días hábiles y el fin de la cosecha; es una hipótesis, no un hecho verificado.`;
+          const directa = /mayor venta|mejor mes/.test(c.texto)
+            ? `El mes con mayor venta fue **${max.mes}** con **${fmt(max.valor)} ${serie.unidad}**.\n\n`
+            : /crecio|crecimiento/.test(c.texto)
+              ? `El producto que más creció es **${nombreFiltroProducto[crec[0]?.p ?? "diesel"]}** (${signo(crec[0]?.v)} interanual).\n\n`
+              : /caida|cayo|baj/.test(c.texto)
+                ? `${caidas.length} meses cayeron frente al mes anterior: **${caidas.map((m) => m.mes).join(", ") || "ninguno"}**.\n\n`
+                : "";
+          return `${directa}**${nombreFiltroProducto[serie.filtros.producto as FiltroProducto]}**${serie.filtros.depto ? ` en ${serie.filtros.depto}` : ""}, ${etiquetaRango(serie.filtros.desde, serie.filtros.hasta)}: **${fmt(serie.actual)} ${serie.unidad}**, ${signo(serie.variacionInteranualPct)} interanual.\n\n- **Mejor mes:** ${max.mes} (${fmt(max.valor)} ${serie.unidad}).\n- **Meses con caída vs. el mes anterior:** ${caidas.length ? caidas.map((m) => m.mes).join(", ") : "ninguno"}.\n- **Crecimiento interanual por producto:** ${crec.map((x) => `${nombreFiltroProducto[x.p]} ${signo(x.v)}`).join(" · ")}. El que más creció fue **${nombreFiltroProducto[crec[0]?.p ?? "diesel"]}**.\n\nLas caídas de febrero y junio coinciden con menos días hábiles y el fin de la cosecha; es una hipótesis, no un hecho verificado.`;
         },
       };
     },
