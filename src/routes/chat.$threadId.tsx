@@ -129,6 +129,11 @@ function ChatWindow({ thread }: { thread: Thread }) {
     transport: new DefaultChatTransport({ api: "/api/chat" }),
     onError: (e) => {
       const m = e.message || "";
+      // Sesión vencida: volver al login y regresar a esta conversación.
+      if (m.includes("Sesión requerida")) {
+        window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+        return;
+      }
       if (m.includes("429")) toast.error("Demasiadas consultas, esperá un momento.");
       else toast.error(m || "No se pudo obtener respuesta de Arandu.");
     },

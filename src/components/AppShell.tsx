@@ -12,6 +12,7 @@ import type { ReactNode } from "react";
 import logo from "@/assets/arandu.png";
 import petroparLogo from "@/assets/petropar-logo.png";
 import { CommandPalette, abrirPaleta } from "@/components/CommandPalette";
+import { SesionUsuario } from "@/components/SesionUsuario";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { fmtNumero } from "@/lib/export";
 import { navReportes, navSoluciones } from "@/lib/navegacion";
@@ -101,6 +102,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
           <ThemeToggle />
         </div>
+        <SesionUsuario />
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
         <nav className="flex items-center gap-2 overflow-x-auto bg-sidebar p-3 md:hidden print:hidden">

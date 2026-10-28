@@ -124,14 +124,15 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const isPresentation = useRouterState({
-    select: (state) => state.location.pathname === "/presentacion",
+  // La presentación y el login se muestran sin la barra lateral del Hub.
+  const sinShell = useRouterState({
+    select: (state) => ["/presentacion", "/login"].includes(state.location.pathname),
   });
 
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      {isPresentation ? (
+      {sinShell ? (
         <Outlet />
       ) : (
         <AppShell>

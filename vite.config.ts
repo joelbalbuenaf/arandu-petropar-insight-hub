@@ -3,6 +3,10 @@ import tailwindcss from "@tailwindcss/vite";
 import viteReact from "@vitejs/plugin-react";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import { nitro } from "nitro/vite";
+import { existsSync } from "node:fs";
+
+// Variables de servidor del .env local (ANTHROPIC_API_KEY, HUB_USUARIO…); en Render vienen del panel.
+if (existsSync(".env")) process.loadEnvFile(".env");
 
 export default defineConfig(({ command, mode }) => {
   // Expone las variables VITE_* al cliente igual que antes.

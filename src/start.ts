@@ -1,5 +1,6 @@
 import { createStart, createCsrfMiddleware, createMiddleware } from "@tanstack/react-start";
 
+import { authConfigurada, esRutaPublica, verificarSesion } from "./lib/auth";
 import { renderErrorPage } from "./lib/error-page";
 
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
@@ -17,6 +18,21 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
   }
 });
 
+// Exige sesión en todo el Hub cuando HUB_USUARIO y HUB_CLAVE están configurados.
+const authMiddleware = createMiddleware().server(
+  async ({ next, request, pathname, handlerType }) => {
+    if (!authConfigurada() || esRutaPublica(pathname)) return next();
+    if (await verificarSesion(request.headers.get("cookie"))) return next();
+    if (pathname.startsWith("/api/") || handlerType === "serverFn")
+      return new Response("Sesión requerida", { status: 401 });
+    const destino = pathname + new URL(request.url).search;
+    return new Response(null, {
+      status: 302,
+      headers: { location: `/login?next=${encodeURIComponent(destino)}` },
+    });
+  },
+);
+
 // Start installs this automatically when src/start.ts is absent; defining the
 // file opts out, so re-add it explicitly to keep server functions protected
 // from cross-site requests.
@@ -25,5 +41,5 @@ const csrfMiddleware = createCsrfMiddleware({
 });
 
 export const startInstance = createStart(() => ({
-  requestMiddleware: [errorMiddleware, csrfMiddleware],
+  requestMiddleware: [errorMiddleware, authMiddleware, csrfMiddleware],
 }));

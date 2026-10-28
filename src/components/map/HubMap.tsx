@@ -282,17 +282,19 @@ export function HubMap({
   return (
     <div className="relative overflow-hidden rounded-lg border bg-muted" style={{ height: alto }}>
       <div ref={ref} className="h-full w-full" aria-label="Mapa" />
-      <div className="pointer-events-none absolute left-2 top-2 flex max-w-[75%] flex-wrap gap-2 rounded-md bg-card/90 px-2 py-1 text-[11px] shadow-sm">
-        {capas.map((c) => (
-          <span key={c.id} className="flex items-center gap-1">
-            <span
-              className="inline-block size-2.5 rounded-full border border-white"
-              style={{ background: c.color }}
-            />
-            {c.nombre}
-          </span>
-        ))}
-      </div>
+      {capas.length > 0 && (
+        <div className="pointer-events-none absolute left-2 top-2 flex max-w-[75%] flex-wrap gap-2 rounded-md bg-card/90 px-2 py-1 text-[11px] shadow-sm">
+          {capas.map((c) => (
+            <span key={c.id} className="flex items-center gap-1">
+              <span
+                className="inline-block size-2.5 rounded-full border border-white"
+                style={{ background: c.color }}
+              />
+              {c.nombre}
+            </span>
+          ))}
+        </div>
+      )}
       {error && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-6 text-center text-sm text-muted-foreground">
           <MapPin className="size-8" />

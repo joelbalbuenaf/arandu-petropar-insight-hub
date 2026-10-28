@@ -11,11 +11,16 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ComercialRouteImport } from './routes/comercial'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as LogisticaRouteImport } from './routes/logistica'
 import { Route as MercadoRouteImport } from './routes/mercado'
 import { Route as OperadoresRouteImport } from './routes/operadores'
 import { Route as PresentacionRouteImport } from './routes/presentacion'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
+import { Route as ApiLoginRouteImport } from './routes/api/login'
+import { Route as ApiLogoutRouteImport } from './routes/api/logout'
+import { Route as ApiSaludRouteImport } from './routes/api/salud'
+import { Route as ApiSesionRouteImport } from './routes/api/sesion'
 import { Route as ChatIndexRouteImport } from './routes/chat.index'
 import { Route as ChatThreadIdRouteImport } from './routes/chat.$threadId'
 import { Route as SolucionesB2bRouteImport } from './routes/soluciones.b2b'
@@ -32,6 +37,11 @@ const IndexRoute = IndexRouteImport.update({
 const ComercialRoute = ComercialRouteImport.update({
   id: '/comercial',
   path: '/comercial',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LogisticaRoute = LogisticaRouteImport.update({
@@ -57,6 +67,26 @@ const PresentacionRoute = PresentacionRouteImport.update({
 const ApiChatRoute = ApiChatRouteImport.update({
   id: '/api/chat',
   path: '/api/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLoginRoute = ApiLoginRouteImport.update({
+  id: '/api/login',
+  path: '/api/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLogoutRoute = ApiLogoutRouteImport.update({
+  id: '/api/logout',
+  path: '/api/logout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSaludRoute = ApiSaludRouteImport.update({
+  id: '/api/salud',
+  path: '/api/salud',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSesionRoute = ApiSesionRouteImport.update({
+  id: '/api/sesion',
+  path: '/api/sesion',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChatIndexRoute = ChatIndexRouteImport.update({
@@ -98,11 +128,16 @@ const SolucionesSapRoute = SolucionesSapRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/comercial': typeof ComercialRoute
+  '/login': typeof LoginRoute
   '/logistica': typeof LogisticaRoute
   '/mercado': typeof MercadoRoute
   '/operadores': typeof OperadoresRoute
   '/presentacion': typeof PresentacionRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/login': typeof ApiLoginRoute
+  '/api/logout': typeof ApiLogoutRoute
+  '/api/salud': typeof ApiSaludRoute
+  '/api/sesion': typeof ApiSesionRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
   '/soluciones/b2b': typeof SolucionesB2bRoute
   '/soluciones/competencia': typeof SolucionesCompetenciaRoute
@@ -114,11 +149,16 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/comercial': typeof ComercialRoute
+  '/login': typeof LoginRoute
   '/logistica': typeof LogisticaRoute
   '/mercado': typeof MercadoRoute
   '/operadores': typeof OperadoresRoute
   '/presentacion': typeof PresentacionRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/login': typeof ApiLoginRoute
+  '/api/logout': typeof ApiLogoutRoute
+  '/api/salud': typeof ApiSaludRoute
+  '/api/sesion': typeof ApiSesionRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
   '/soluciones/b2b': typeof SolucionesB2bRoute
   '/soluciones/competencia': typeof SolucionesCompetenciaRoute
@@ -131,11 +171,16 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/comercial': typeof ComercialRoute
+  '/login': typeof LoginRoute
   '/logistica': typeof LogisticaRoute
   '/mercado': typeof MercadoRoute
   '/operadores': typeof OperadoresRoute
   '/presentacion': typeof PresentacionRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/login': typeof ApiLoginRoute
+  '/api/logout': typeof ApiLogoutRoute
+  '/api/salud': typeof ApiSaludRoute
+  '/api/sesion': typeof ApiSesionRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
   '/soluciones/b2b': typeof SolucionesB2bRoute
   '/soluciones/competencia': typeof SolucionesCompetenciaRoute
@@ -149,11 +194,16 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/comercial'
+    | '/login'
     | '/logistica'
     | '/mercado'
     | '/operadores'
     | '/presentacion'
     | '/api/chat'
+    | '/api/login'
+    | '/api/logout'
+    | '/api/salud'
+    | '/api/sesion'
     | '/chat/$threadId'
     | '/soluciones/b2b'
     | '/soluciones/competencia'
@@ -165,11 +215,16 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/comercial'
+    | '/login'
     | '/logistica'
     | '/mercado'
     | '/operadores'
     | '/presentacion'
     | '/api/chat'
+    | '/api/login'
+    | '/api/logout'
+    | '/api/salud'
+    | '/api/sesion'
     | '/chat/$threadId'
     | '/soluciones/b2b'
     | '/soluciones/competencia'
@@ -181,11 +236,16 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/comercial'
+    | '/login'
     | '/logistica'
     | '/mercado'
     | '/operadores'
     | '/presentacion'
     | '/api/chat'
+    | '/api/login'
+    | '/api/logout'
+    | '/api/salud'
+    | '/api/sesion'
     | '/chat/$threadId'
     | '/soluciones/b2b'
     | '/soluciones/competencia'
@@ -198,11 +258,16 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ComercialRoute: typeof ComercialRoute
+  LoginRoute: typeof LoginRoute
   LogisticaRoute: typeof LogisticaRoute
   MercadoRoute: typeof MercadoRoute
   OperadoresRoute: typeof OperadoresRoute
   PresentacionRoute: typeof PresentacionRoute
   ApiChatRoute: typeof ApiChatRoute
+  ApiLoginRoute: typeof ApiLoginRoute
+  ApiLogoutRoute: typeof ApiLogoutRoute
+  ApiSaludRoute: typeof ApiSaludRoute
+  ApiSesionRoute: typeof ApiSesionRoute
   ChatThreadIdRoute: typeof ChatThreadIdRoute
   SolucionesB2bRoute: typeof SolucionesB2bRoute
   SolucionesCompetenciaRoute: typeof SolucionesCompetenciaRoute
@@ -226,6 +291,13 @@ declare module '@tanstack/react-router' {
       path: '/comercial'
       fullPath: '/comercial'
       preLoaderRoute: typeof ComercialRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/logistica': {
@@ -261,6 +333,34 @@ declare module '@tanstack/react-router' {
       path: '/api/chat'
       fullPath: '/api/chat'
       preLoaderRoute: typeof ApiChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/login': {
+      id: '/api/login'
+      path: '/api/login'
+      fullPath: '/api/login'
+      preLoaderRoute: typeof ApiLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/logout': {
+      id: '/api/logout'
+      path: '/api/logout'
+      fullPath: '/api/logout'
+      preLoaderRoute: typeof ApiLogoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/salud': {
+      id: '/api/salud'
+      path: '/api/salud'
+      fullPath: '/api/salud'
+      preLoaderRoute: typeof ApiSaludRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/sesion': {
+      id: '/api/sesion'
+      path: '/api/sesion'
+      fullPath: '/api/sesion'
+      preLoaderRoute: typeof ApiSesionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/chat/': {
@@ -318,11 +418,16 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ComercialRoute: ComercialRoute,
+  LoginRoute: LoginRoute,
   LogisticaRoute: LogisticaRoute,
   MercadoRoute: MercadoRoute,
   OperadoresRoute: OperadoresRoute,
   PresentacionRoute: PresentacionRoute,
   ApiChatRoute: ApiChatRoute,
+  ApiLoginRoute: ApiLoginRoute,
+  ApiLogoutRoute: ApiLogoutRoute,
+  ApiSaludRoute: ApiSaludRoute,
+  ApiSesionRoute: ApiSesionRoute,
   ChatThreadIdRoute: ChatThreadIdRoute,
   SolucionesB2bRoute: SolucionesB2bRoute,
   SolucionesCompetenciaRoute: SolucionesCompetenciaRoute,

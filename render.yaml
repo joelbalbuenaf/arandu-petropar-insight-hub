@@ -6,7 +6,7 @@ services:
     plan: free
     buildCommand: npm ci --include=dev && npm run build
     startCommand: npm start
-    healthCheckPath: /api/chat
+    healthCheckPath: /api/salud
     autoDeploy: true
     envVars:
       - key: NODE_VERSION
@@ -14,6 +14,13 @@ services:
       # Opcional: sin key, Arandu responde en modo demo. Se carga en el panel de Render (no en el repo).
       - key: ANTHROPIC_API_KEY
         sync: false
+      # Acceso al Hub: usuario y contraseña se cargan en el panel de Render.
+      - key: HUB_USUARIO
+        sync: false
+      - key: HUB_CLAVE
+        sync: false
+      - key: HUB_SECRETO
+        generateValue: true
       - key: ARANDU_MODEL
         value: claude-opus-5-5
       - key: ARANDU_EFFORT
