@@ -4,14 +4,17 @@
 - [x] Añadir navegación, vista general, presentación y exportación por impresión.
 - [x] Verificar contenido, navegación y legibilidad de la propuesta revisada.
 
-# Ampliación del Hub
+# Hub independiente de Lovable
 
-- [x] Reportes comerciales: territorio, operadores, metas, presupuesto y proyecciones con datos ficticios compartidos.
-- [x] Arandu: biblioteca de preguntas, oportunidades y gráficos en las respuestas.
-- [x] Verificar navegación, filtros, cálculos y conversación.
-- [ ] Validar Google Maps en el sitio publicado autorizado: no disponible en el entorno de pruebas.
+- [x] Fase 0: config propia de Vite + nitro (node-server), Node 22, CI, errores en español.
+- [x] Fase 1: datos de demo 2025–2026 por departamento, estaciones, competencia y prospectos; forecast con backtest e intervalo; alertas; estadística.
+- [x] Fase 2: Arandu con Claude (tool runner, streaming, caché, fallback) y modo demo sin IA.
+- [x] Fase 3: filtros en la URL, KPIs con variación, alertas, mapas MapLibre, Ctrl+K, modo oscuro, CSV/PDF.
+- [x] Fase 4: cinco módulos de soluciones navegables.
+- [x] Fase 5: tests (42), build de producción verificado, Dockerfile, README.
 
-# Soluciones en el inicio
+# Pendiente
 
-- [x] Agregar los cinco bloques de la referencia con alcance y conexiones necesarias.
-- [x] Verificar apertura de los cinco detalles, acceso a Arandu y ausencia de desbordamiento en pantalla móvil.
+- [ ] Probar Arandu con una `ANTHROPIC_API_KEY` real (verificar herramientas, gráficos y `cache_read_input_tokens`).
+- [ ] Publicar: repositorio en GitHub (activa el CI) y hosting (VPS/Docker o Vercel con `NITRO_PRESET`).
+- [ ] Con datos reales: reemplazar el generador de `src/lib/data/` por conectores (SAP, estaciones, competencia).
