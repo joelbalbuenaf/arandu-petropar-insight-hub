@@ -1,464 +1,130 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
-import { Download, MessageSquareText, TrendingUp } from "lucide-react";
-import { Kpi, PageHeader } from "@/components/AppShell";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { MessageSquareText, Printer } from "lucide-react";
+import { PageHeader } from "@/components/AppShell";
+import { FilterBar } from "@/components/filters/FilterBar";
+import { Territorio } from "@/components/comercial/Territorio";
+import {
+  Estadistica,
+  Forecast,
+  Metas,
+  Operadores,
+  Presupuesto,
+  Resumen,
+} from "@/components/comercial/Pestanas";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { AnalyticalChart } from "@/components/AnalyticalChart";
-import { SalesMap } from "@/components/SalesMap";
-import {
-  kpisComerciales,
-  operadoresDetalle,
-  oportunidades,
-  proyectarVentas,
-  ventasGeograficas,
-  ventasLiquidas,
-  type ProductoLiquido,
-} from "@/lib/petropar-data";
+import { etiquetaRango } from "@/lib/data";
+import { aFiltrosVentas, validarFiltrosUrl, type FiltrosUrl } from "@/lib/filtros-url";
+
+const pestanas = [
+  { id: "resumen", label: "Resumen" },
+  { id: "territorio", label: "Territorio" },
+  { id: "operadores", label: "Operadores" },
+  { id: "metas", label: "Metas vs. realizado" },
+  { id: "presupuesto", label: "Presupuesto" },
+  { id: "forecast", label: "Forecast" },
+  { id: "estadistica", label: "Estadística" },
+] as const;
+type Pestana = (typeof pestanas)[number]["id"];
 
 export const Route = createFileRoute("/comercial")({
+  validateSearch: (search: Record<string, unknown>): FiltrosUrl & { tab?: Pestana } => {
+    const tab = pestanas.find((p) => p.id === search["tab"])?.id;
+    return { ...validarFiltrosUrl(search), ...(tab && tab !== "resumen" ? { tab } : {}) };
+  },
   head: () => ({
     meta: [
       { title: "Análisis Comercial · Petropar" },
       {
         name: "description",
         content:
-          "Ventas territoriales, operadores, metas, presupuestos y proyecciones comerciales de Petropar.",
+          "Ventas territoriales, operadores, metas, presupuestos, proyecciones y estadística comercial de Petropar.",
       },
       { property: "og:title", content: "Análisis Comercial · Petropar" },
-      {
-        property: "og:description",
-        content: "Análisis territorial, cumplimiento comercial, presupuesto y forecasting.",
-      },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Page,
 });
-const fmt = (n: number) => n.toLocaleString("es-PY", { maximumFractionDigits: 2 });
-function exportRows(rows: object[], name: string) {
-  const first = rows[0];
-  if (!first) return;
-  const keys = Object.keys(first);
-  const csv = [
-    keys.join(";"),
-    ...rows.map((r) =>
-      keys
-        .map((k) => `"${String((r as Record<string, unknown>)[k]).replaceAll('"', '""')}"`)
-        .join(";"),
-    ),
-  ].join("\n");
-  const url = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" }));
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = name;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="min-w-0 border-t pt-5">
-      <h2 className="mb-5 text-lg font-semibold">{title}</h2>
-      {children}
-    </section>
-  );
-}
+
 function Page() {
-  const [selected, setSelected] = useState("Todos");
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("Todos");
-  const [sort, setSort] = useState("volumen");
-  const [product, setProduct] = useState<ProductoLiquido | "total">("total");
-  const [adjust, setAdjust] = useState(0);
-  const total = ventasLiquidas.reduce((s, v) => s + v.realizado, 0);
-  const meta = ventasLiquidas.reduce((s, v) => s + v.meta, 0);
-  const rows = operadoresDetalle
-    .filter(
-      (o) =>
-        o.operador.toLowerCase().includes(search.toLowerCase()) &&
-        (status === "Todos" ||
-          (status === "Bajo meta" ? o.cumplimientoPct < 100 : o.cumplimientoPct >= 100)),
-    )
-    .sort((a, b) =>
-      sort === "cumplimiento"
-        ? a.cumplimientoPct - b.cumplimientoPct
-        : sort === "margen"
-          ? b.margenPct - a.margenPct
-          : b.litrosMl - a.litrosMl,
-    );
-  const forecast = proyectarVentas(product, adjust);
-  const budget = operadoresDetalle.reduce((s, o) => s + o.presupuestoMUSD, 0);
-  const executed = operadoresDetalle.reduce((s, o) => s + o.ejecutadoMUSD, 0);
+  const search = Route.useSearch();
+  const navigate = useNavigate();
+  const filtros = aFiltrosVentas(search);
+  const tab = search.tab ?? "resumen";
+  const conFiltros = tab === "resumen" || tab === "territorio" || tab === "metas";
+
   return (
     <main className="pb-10">
       <PageHeader
         eyebrow="Inteligencia comercial"
         title="Reportes Comerciales"
-        desc="Ventas, desempeño territorial y decisiones para el cierre del año."
+        desc="Ventas, desempeño territorial, metas, presupuesto y decisiones para el cierre del año."
+        periodo={etiquetaRango(filtros.desde, filtros.hasta)}
+        acciones={
+          <>
+            <Button variant="outline" onClick={() => window.print()}>
+              <Printer /> PDF
+            </Button>
+            <Button asChild>
+              <Link to="/chat">
+                <MessageSquareText /> Consultar a Arandu
+              </Link>
+            </Button>
+          </>
+        }
       />
       <div className="space-y-6 px-6 md:px-10">
-        <div className="flex flex-wrap justify-end gap-2">
-          <Button variant="outline" asChild>
-            <Link to="/chat">
-              <MessageSquareText />
-              Consultar a Arandu
-            </Link>
-          </Button>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <Kpi
-            label="Combustibles líquidos"
-            value={`${fmt(total)} ML`}
-            hint="Diésel + naftas + etanol"
-          />
-          <Kpi
-            label="Cumplimiento mensual acumulado"
-            value={`${fmt((total / meta) * 100)}%`}
-            hint={`Meta: ${fmt(meta)} ML`}
-          />
-          <Kpi
-            label="Facturación comercial"
-            value={`USD ${fmt(kpisComerciales.facturacionMMUSD)} M`}
-          />
-          <Kpi label="Margen bruto" value={`${kpisComerciales.margenBrutoPct}%`} />
-        </div>
-        <Tabs defaultValue="resumen">
-          <div className="overflow-x-auto pb-2">
-            <TabsList className="w-max">
-              <TabsTrigger value="resumen">Resumen</TabsTrigger>
-              <TabsTrigger value="territorio">Territorio</TabsTrigger>
-              <TabsTrigger value="operadores">Operadores</TabsTrigger>
-              <TabsTrigger value="metas">Metas vs. realizado</TabsTrigger>
-              <TabsTrigger value="presupuesto">Presupuesto</TabsTrigger>
-              <TabsTrigger value="forecast">Forecasting</TabsTrigger>
-            </TabsList>
-          </div>
-          <TabsContent value="resumen" className="space-y-8">
-            <div className="grid gap-8 xl:grid-cols-2">
-              <Section title="Evolución de ventas">
-                <AnalyticalChart id="ventas" />
-              </Section>
-              <Section title="Cumplimiento comercial">
-                <AnalyticalChart id="metas" />
-              </Section>
-            </div>
-            <div className="grid gap-8 xl:grid-cols-2">
-              <Section title="GLP · unidad independiente">
-                <AnalyticalChart id="glp" />
-              </Section>
-              <Section title="Oportunidades prioritarias">
-                <div className="space-y-5">
-                  {oportunidades.map((o) => (
-                    <div key={o.titulo} className="border-l-2 border-accent pl-4">
-                      <p className="font-semibold">{o.titulo}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{o.evidencia}</p>
-                      <p className="mt-2 text-sm">{o.accion}</p>
-                    </div>
-                  ))}
-                </div>
-              </Section>
-            </div>
-          </TabsContent>
-          <TabsContent value="territorio" className="space-y-6">
-            <Section title="Ventas geolocalizadas">
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <Select value={selected} onValueChange={setSelected}>
-                  <SelectTrigger className="w-52" aria-label="Departamento">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {["Todos", ...ventasGeograficas.map((d) => d.depto)].map((d) => (
-                      <SelectItem key={d} value={d}>
-                        {d}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    exportRows(
-                      ventasGeograficas.filter((d) => selected === "Todos" || d.depto === selected),
-                      "ventas-territoriales.csv",
-                    )
-                  }
-                >
-                  <Download />
-                  Exportar
-                </Button>
-              </div>
-              <SalesMap selected={selected} onSelect={setSelected} />
-              <p className="mt-3 text-xs text-muted-foreground">
-                Cobertura parcial: siete departamentos seleccionados. Coordenadas representativas,
-                no ubicaciones de estaciones.
-              </p>
-              <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {ventasGeograficas
-                  .filter((d) => selected === "Todos" || d.depto === selected)
-                  .map((d) => (
-                    <div key={d.depto} className="rounded-lg border bg-card p-4">
-                      <p className="font-semibold">{d.depto}</p>
-                      <p className="mt-2 text-xl font-bold">{d.litros} ML</p>
-                      <p className="text-sm text-muted-foreground">
-                        Meta {d.meta} ML · {fmt((d.litros / d.meta) * 100)}%
-                      </p>
-                      <p
-                        className={
-                          d.litros < d.meta ? "text-sm text-destructive" : "text-sm text-success"
-                        }
-                      >
-                        Brecha {fmt(d.litros - d.meta)} ML
-                      </p>
-                    </div>
-                  ))}
-              </div>
-            </Section>
-          </TabsContent>
-          <TabsContent value="operadores">
-            <Section title="Detalle comercial por operador">
-              <div className="mb-4 flex flex-wrap gap-3">
-                <Input
-                  className="w-full sm:w-64"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Buscar operador…"
-                  aria-label="Buscar operador"
-                />
-                <Select value={status} onValueChange={setStatus}>
-                  <SelectTrigger className="w-44" aria-label="Cumplimiento">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {["Todos", "Bajo meta", "En meta"].map((v) => (
-                      <SelectItem value={v} key={v}>
-                        {v}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={sort} onValueChange={setSort}>
-                  <SelectTrigger className="w-48" aria-label="Ordenar operadores">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="volumen">Mayor volumen</SelectItem>
-                    <SelectItem value="cumplimiento">Menor cumplimiento</SelectItem>
-                    <SelectItem value="margen">Mayor margen</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="outline"
-                  onClick={() => exportRows(rows, "operadores-comercial.csv")}
-                >
-                  <Download />
-                  CSV
-                </Button>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-secondary">
-                    <tr>
-                      {[
-                        "Operador",
-                        "Estaciones",
-                        "Venta ML",
-                        "Meta ML",
-                        "Brecha ML",
-                        "Cumplimiento",
-                        "Crecimiento",
-                        "Facturación USD M",
-                        "Margen",
-                      ].map((h) => (
-                        <th key={h} className="whitespace-nowrap p-3 text-left">
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((o) => (
-                      <tr key={o.operador} className="border-b">
-                        <td className="min-w-52 p-3 font-medium">{o.operador}</td>
-                        <td className="p-3">{o.estaciones || "—"}</td>
-                        <td className="p-3">{fmt(o.litrosMl)}</td>
-                        <td className="p-3">{fmt(o.metaMl)}</td>
-                        <td
-                          className={`p-3 ${o.brechaMl < 0 ? "text-destructive" : "text-success"}`}
-                        >
-                          {fmt(o.brechaMl)}
-                        </td>
-                        <td className="p-3">{o.cumplimientoPct}%</td>
-                        <td className="p-3">{o.crecimientoPct}%</td>
-                        <td className="p-3">{o.facturacionMUSD}</td>
-                        <td className="p-3">{o.margenPct}%</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {rows.length === 0 && (
-                  <p className="p-8 text-center text-muted-foreground">
-                    No hay operadores con estos filtros.
-                  </p>
-                )}
-              </div>
-              <p className="mt-3 text-xs text-muted-foreground">
-                Universo por canal independiente de la serie mensual por producto. —: sin estaciones
-                aplicables.
-              </p>
-            </Section>
-          </TabsContent>
-          <TabsContent value="metas" className="space-y-8">
-            <Section title="Metas mensuales">
-              <AnalyticalChart id="metas" />
-              <div className="mt-5 overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr>
-                      {["Mes", "Realizado ML", "Meta ML", "Brecha ML", "Cumplimiento"].map((h) => (
-                        <th key={h} className="p-3 text-left">
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ventasLiquidas.map((v) => (
-                      <tr key={v.mes} className="border-t">
-                        <td className="p-3">{v.mes}</td>
-                        <td className="p-3">{v.realizado}</td>
-                        <td className="p-3">{v.meta}</td>
-                        <td className="p-3">{v.realizado - v.meta}</td>
-                        <td className="p-3">{fmt((v.realizado / v.meta) * 100)}%</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Section>
-            <Section title="Metas por canal">
-              <AnalyticalChart id="operadores" />
-            </Section>
-          </TabsContent>
-          <TabsContent value="presupuesto" className="space-y-6">
-            <div className="grid gap-4 sm:grid-cols-3">
-              <Kpi label="Presupuesto comercial" value={`USD ${fmt(budget)} M`} />
-              <Kpi label="Ejecutado" value={`USD ${fmt(executed)} M`} />
-              <Kpi
-                label="Desvío neto"
-                value={`USD ${fmt(executed - budget)} M`}
-                hint="Ejecutado menos presupuesto"
-              />
-            </div>
-            <Section title="Ejecución presupuestaria">
-              <AnalyticalChart id="presupuesto" />
-              <div className="mt-5 overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr>
-                      {[
-                        "Operador",
-                        "Presupuesto USD M",
-                        "Ejecutado USD M",
-                        "Desvío USD M",
-                        "Ejecución",
-                      ].map((h) => (
-                        <th key={h} className="whitespace-nowrap p-3 text-left">
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {operadoresDetalle.map((o) => (
-                      <tr key={o.operador} className="border-t">
-                        <td className="p-3">{o.operador}</td>
-                        <td className="p-3">{o.presupuestoMUSD}</td>
-                        <td className="p-3">{o.ejecutadoMUSD}</td>
-                        <td
-                          className={`p-3 ${o.ejecutadoMUSD > o.presupuestoMUSD ? "text-destructive" : "text-success"}`}
-                        >
-                          {o.ejecutadoMUSD - o.presupuestoMUSD}
-                        </td>
-                        <td className="p-3">{fmt((o.ejecutadoMUSD / o.presupuestoMUSD) * 100)}%</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <p className="mt-3 text-xs text-muted-foreground">
-                Costos comerciales ficticios en USD millones; presupuesto no equivale a facturación.
-              </p>
-            </Section>
-          </TabsContent>
-          <TabsContent value="forecast" className="space-y-6">
-            <Section title="Escenarios de demanda · octubre–diciembre">
-              <div className="mb-6 flex flex-wrap items-center gap-5">
-                <Select
-                  value={product}
-                  onValueChange={(v) => setProduct(v as ProductoLiquido | "total")}
-                >
-                  <SelectTrigger className="w-60" aria-label="Producto del forecast">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="total">Combustibles líquidos</SelectItem>
-                    <SelectItem value="diesel">Diésel</SelectItem>
-                    <SelectItem value="naftas">Naftas</SelectItem>
-                    <SelectItem value="etanol">Etanol</SelectItem>
-                  </SelectContent>
-                </Select>
-                <label className="flex items-center gap-3 text-sm">
-                  Demanda{" "}
-                  <input
-                    type="range"
-                    min={-20}
-                    max={20}
-                    step={1}
-                    value={adjust}
-                    onChange={(e) => setAdjust(Number(e.target.value))}
-                    aria-label="Ajuste de demanda"
-                    className="accent-primary"
-                  />
-                  <span className="w-12 tabular-nums">
-                    {adjust > 0 ? "+" : ""}
-                    {adjust}%
-                  </span>
-                </label>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-3">
-                {forecast.map((v) => (
-                  <div key={v.mes} className="rounded-lg border bg-card p-5">
-                    <p className="text-sm text-muted-foreground">{v.mes} 2026</p>
-                    <p className="mt-2 flex items-center gap-2 text-2xl font-bold">
-                      <TrendingUp className="size-5 text-success" />
-                      {fmt(v.escenario)} ML
-                    </p>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      Base: {fmt(v.base)} ML · diferencia {fmt(v.escenario - v.base)} ML
-                    </p>
-                  </div>
+        <Tabs
+          value={tab}
+          onValueChange={(v) =>
+            void navigate({
+              to: ".",
+              search: (prev: Record<string, unknown>) => ({
+                ...prev,
+                tab: v === "resumen" ? undefined : v,
+              }),
+              replace: true,
+            } as never)
+          }
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="overflow-x-auto pb-1">
+              <TabsList className="w-max">
+                {pestanas.map((p) => (
+                  <TabsTrigger key={p.id} value={p.id}>
+                    {p.label}
+                  </TabsTrigger>
                 ))}
-              </div>
-              <div className="mt-6">
-                <AnalyticalChart id="forecast" forecastProduct={product} adjustment={adjust} />
-              </div>
-              <p className="mt-4 border-l-2 border-accent pl-4 text-sm text-muted-foreground">
-                Escenario: {product === "total" ? "combustibles líquidos" : product}, ajuste{" "}
-                {adjust}%. Método: regresión lineal sobre Ene–Sep; sin estacionalidad, intervalos de
-                confianza ni validación histórica. Es una simulación de ejemplo, no una predicción
-                validada.
-              </p>
-            </Section>
+              </TabsList>
+            </div>
+            {conFiltros && (
+              <FilterBar
+                filtros={search}
+                mostrar={tab === "metas" ? ["depto"] : ["periodo", "producto", "depto"]}
+              />
+            )}
+          </div>
+          <TabsContent value="resumen" className="mt-6">
+            <Resumen filtros={filtros} />
+          </TabsContent>
+          <TabsContent value="territorio" className="mt-6">
+            <Territorio filtros={filtros} />
+          </TabsContent>
+          <TabsContent value="operadores" className="mt-6">
+            <Operadores />
+          </TabsContent>
+          <TabsContent value="metas" className="mt-6">
+            <Metas filtros={filtros} />
+          </TabsContent>
+          <TabsContent value="presupuesto" className="mt-6">
+            <Presupuesto />
+          </TabsContent>
+          <TabsContent value="forecast" className="mt-6">
+            <Forecast />
+          </TabsContent>
+          <TabsContent value="estadistica" className="mt-6">
+            <Estadistica />
           </TabsContent>
         </Tabs>
       </div>

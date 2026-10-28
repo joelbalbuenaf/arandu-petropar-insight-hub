@@ -193,7 +193,7 @@ function construirEstaciones(): Estacion[] {
       // Más competencia cerca → menor aprovechamiento del potencial de la zona.
       const aprovechamiento = Math.max(
         0.42,
-        Math.min(1.04, 0.98 - 0.045 * e.competidores3km + entre(azar, -0.14, 0.06)),
+        Math.min(1.04, 0.96 - 0.024 * e.competidores3km + entre(azar, -0.24, 0.12)),
       );
       out.push({
         ...e,

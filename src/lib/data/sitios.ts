@@ -4,6 +4,8 @@ import { dentroDeRadio, distanciaARutaKm, distanciaKm, masCercano, type Punto } 
 import { competencia, estaciones } from "./red";
 import { redondear } from "./random";
 
+const n = (v: number, d = 1) => v.toLocaleString("es-PY", { maximumFractionDigits: d });
+
 export type Factor = { nombre: string; valor: string; aporte: number; explicacion: string };
 
 export function evaluarSitio(p: Punto) {
@@ -38,13 +40,13 @@ export function evaluarSitio(p: Punto) {
   const factores: Factor[] = [
     {
       nombre: "Demanda del entorno",
-      valor: `${redondear(demanda, 2)} índice`,
+      valor: `${n(demanda, 2)} índice`,
       aporte: Math.round(fDemanda),
-      explicacion: `Ciudades cercanas ponderadas por distancia; la más próxima es ${ciudad?.nombre ?? "—"} a ${redondear(ciudad?.distanciaKm ?? 0, 1)} km.`,
+      explicacion: `Ciudades cercanas ponderadas por distancia; la más próxima es ${ciudad?.nombre ?? "—"} a ${n(ciudad?.distanciaKm ?? 0, 1)} km.`,
     },
     {
       nombre: "Tráfico de ruta",
-      valor: ruta ? `${redondear(ruta.km, 1)} km` : "—",
+      valor: ruta ? `${n(ruta.km, 1)} km` : "—",
       aporte: Math.round(fRuta),
       explicacion: ruta ? `Distancia a ${ruta.nombre}.` : "Sin ruta troncal cercana.",
     },
@@ -61,7 +63,7 @@ export function evaluarSitio(p: Punto) {
       valor: `${propias.length} Petropar`,
       aporte: Math.round(fCanibal),
       explicacion: propias.length
-        ? `La más cercana: ${propias[0]?.nombre} a ${redondear(propias[0]?.distanciaKm ?? 0, 1)} km.`
+        ? `La más cercana: ${propias[0]?.nombre} a ${n(propias[0]?.distanciaKm ?? 0, 1)} km.`
         : "Sin estaciones propias en 5 km.",
     },
   ];

@@ -1,95 +1,126 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Kpi, PageHeader } from "@/components/AppShell";
+import { Grafico } from "@/components/AnalyticalChart";
+import { BotonCsv, Seccion, Tabla } from "@/components/comercial/comun";
+import { FilterBar } from "@/components/filters/FilterBar";
+import { HubMap } from "@/components/map/HubMap";
 import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Legend,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import { Kpi, PageHeader, Panel } from "@/components/AppShell";
-import { logistica } from "@/lib/petropar-data";
+  etiquetaRango,
+  kpisLogistica,
+  nivelRioParaguayM,
+  plantas,
+  serieLogistica,
+} from "@/lib/data";
+import { fmtNumero } from "@/lib/export";
+import { aFiltrosVentas, validarFiltrosUrl } from "@/lib/filtros-url";
 
 export const Route = createFileRoute("/logistica")({
+  validateSearch: validarFiltrosUrl,
   head: () => ({
     meta: [
       { title: "Reportes Logística · Petropar" },
       {
         name: "description",
-        content: "Stock por planta, importaciones y nivel de entregas de Petropar.",
+        content: "Stock por planta, importaciones, nivel del río y entregas de Petropar.",
       },
       { property: "og:title", content: "Reportes Logística · Petropar" },
-      { property: "og:description", content: "Stock, plantas e importaciones." },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Page,
 });
 
 function Page() {
-  const k = logistica.kpis;
+  const search = Route.useSearch();
+  const f = aFiltrosVentas(search);
+  const k = kpisLogistica;
+  const meses = serieLogistica.filter((s) => s.periodo >= f.desde && s.periodo <= f.hasta);
+  const fluvial = meses.reduce((s, m) => s + m.fluvial, 0);
+  const terrestre = meses.reduce((s, m) => s + m.terrestre, 0);
+  const filasPlantas = plantas.map((p) => ({
+    ...p,
+    ocupacionPct: (p.stockM3 / p.capacidadM3) * 100,
+  }));
+
   return (
     <main className="pb-10">
       <PageHeader
         eyebrow="Reportes"
         title="Reportes Logística"
-        desc="Almacenamiento, plantas, importaciones fluviales y terrestres."
+        desc="Almacenamiento, plantas, importaciones fluviales y terrestres, y riesgo del río Paraguay."
+        periodo={etiquetaRango(f.desde, f.hasta)}
+        acciones={<FilterBar filtros={search} mostrar={["periodo"]} />}
       />
       <div className="space-y-6 px-6 md:px-10">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Kpi label="Stock diésel" value={`${k.stockDiasDiesel} días`} />
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <Kpi
+            label="Stock diésel"
+            value={`${k.stockDiasDiesel} días`}
+            hint="Umbral de la demo: 20 días"
+          />
           <Kpi label="Stock naftas" value={`${k.stockDiasNaftas} días`} />
-          <Kpi label="Ocupación tanques" value={`${k.ocupacionTanquesPct}%`} />
-          <Kpi label="Entregas a tiempo" value={`${k.entregasATiempoPct}%`} />
+          <Kpi
+            label="Río Paraguay (Asunción)"
+            value={`${fmtNumero(nivelRioParaguayM, 2)} m`}
+            hint="Bajante: limita barcazas"
+          />
+          <Kpi
+            label="Importación terrestre"
+            value={`${fmtNumero((terrestre / (fluvial + terrestre)) * 100)}%`}
+            hint={`${fmtNumero(fluvial + terrestre, 0)} mil m³ en el período`}
+          />
         </div>
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Panel title="Ocupación por planta">
-            <div className="space-y-4">
-              {logistica.plantas.map((p) => {
-                const pct = Math.round((p.stockM3 / p.capacidadM3) * 100);
-                return (
-                  <div key={p.planta}>
-                    <div className="mb-1 flex justify-between text-sm">
-                      <span>{p.planta}</span>
-                      <span className="text-muted-foreground">
-                        {p.stockM3.toLocaleString("es-PY")} /{" "}
-                        {p.capacidadM3.toLocaleString("es-PY")} m³
-                      </span>
-                    </div>
-                    <div className="h-2.5 rounded-full bg-muted">
-                      <div
-                        className="h-full rounded-full bg-primary"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+        <div className="grid gap-6 xl:grid-cols-2">
+          <Seccion titulo="Importaciones por modo">
+            <Grafico grafico="importaciones" desde={f.desde} hasta={f.hasta} />
+          </Seccion>
+          <Seccion titulo="Nivel del río Paraguay">
+            <Grafico grafico="nivel_rio" />
+          </Seccion>
+          <Seccion titulo="Capacidad y stock por planta">
+            <Grafico grafico="stock_plantas" />
+          </Seccion>
+          <Seccion titulo="Plantas" acciones={<BotonCsv filas={filasPlantas} nombre="plantas" />}>
+            <HubMap
+              alto={230}
+              capas={[
+                {
+                  id: "plantas",
+                  nombre: "Plantas Petropar",
+                  color: "var(--series-1)",
+                  radio: [7, 14],
+                  puntos: plantas.map((p) => ({
+                    id: p.planta,
+                    lat: p.lat,
+                    lng: p.lng,
+                    titulo: p.planta,
+                    valor: p.capacidadM3,
+                    detalle: `${p.producto} · ${fmtNumero(p.stockM3, 0)} / ${fmtNumero(p.capacidadM3, 0)} m³`,
+                  })),
+                },
+              ]}
+            />
+            <div className="mt-4">
+              <Tabla
+                filas={filasPlantas}
+                clave={(p) => p.planta}
+                columnas={[
+                  { titulo: "Planta", valor: (p) => p.planta },
+                  { titulo: "Stock m³", valor: (p) => fmtNumero(p.stockM3, 0), numero: true },
+                  {
+                    titulo: "Capacidad m³",
+                    valor: (p) => fmtNumero(p.capacidadM3, 0),
+                    numero: true,
+                  },
+                  {
+                    titulo: "Ocupación",
+                    valor: (p) => `${fmtNumero(p.ocupacionPct)}%`,
+                    numero: true,
+                  },
+                ]}
+              />
             </div>
-          </Panel>
-          <Panel
-            title={`Importaciones (miles m³) · Río Paraguay: ${logistica.nivelRioParaguayM} m`}
-          >
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={logistica.importaciones}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="mes" fontSize={12} stroke="var(--muted-foreground)" />
-                <YAxis fontSize={12} stroke="var(--muted-foreground)" />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="fluvial" name="Fluvial" fill="var(--chart-1)" radius={[6, 6, 0, 0]} />
-                <Bar
-                  dataKey="terrestre"
-                  name="Terrestre"
-                  fill="var(--chart-2)"
-                  radius={[6, 6, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </Panel>
+          </Seccion>
         </div>
       </div>
     </main>

@@ -2,7 +2,6 @@ import { kpisLogistica, nivelRioParaguayM, seriePrecios } from "./operaciones";
 import { operadoresDetalle } from "./operadores";
 import { FILTROS_POR_DEFECTO, porDepartamento, resumen } from "./query";
 import { estaciones, vaciosDeCobertura } from "./red";
-import { redondear } from "./random";
 
 export type Severidad = "alta" | "media" | "baja";
 export type Area = "Comercial" | "Logística" | "Mercado" | "Red";
@@ -18,6 +17,9 @@ export type Alerta = {
   enlace: string;
 };
 
+/** Número con coma decimal (es-PY). */
+const n = (v: number, d = 1) => v.toLocaleString("es-PY", { maximumFractionDigits: d });
+
 const peso: Record<Severidad, number> = { alta: 0, media: 1, baja: 2 };
 
 export function detectarAlertas(): Alerta[] {
@@ -29,8 +31,8 @@ export function detectarAlertas(): Alerta[] {
         id: `op-meta-${o.operador}`,
         severidad: o.cumplimientoPct < 93 ? "alta" : "media",
         area: "Comercial",
-        titulo: `${o.operador} al ${o.cumplimientoPct}% de su meta`,
-        detalle: `Brecha de ${Math.abs(o.brechaMl).toFixed(1)} ML contra la meta de ${o.metaMl.toFixed(1)} ML; crecimiento de ${o.crecimientoPct}%.`,
+        titulo: `${o.operador} al ${n(o.cumplimientoPct)}% de su meta`,
+        detalle: `Brecha de ${n(Math.abs(o.brechaMl))} ML contra la meta de ${n(o.metaMl)} ML; crecimiento de ${n(o.crecimientoPct)}%.`,
         pregunta: `Analiza la brecha de ${o.operador} y propone acciones con su impacto en ML.`,
         enlace: "/operadores",
       });
@@ -40,7 +42,7 @@ export function detectarAlertas(): Alerta[] {
         id: `op-ppto-${o.operador}`,
         severidad: desvio > 4 ? "alta" : "media",
         area: "Comercial",
-        titulo: `${o.operador} gasta ${redondear(desvio, 1)}% sobre presupuesto`,
+        titulo: `${o.operador} gasta ${n(desvio)}% sobre presupuesto`,
         detalle: `USD ${o.ejecutadoMUSD} M ejecutados vs. USD ${o.presupuestoMUSD} M presupuestados en costos comerciales.`,
         pregunta: "Compara presupuesto y ejecución por operador y prioriza los desvíos.",
         enlace: "/comercial?tab=presupuesto",
@@ -55,8 +57,8 @@ export function detectarAlertas(): Alerta[] {
       id: `depto-${d.depto}`,
       severidad: (d.cumplimientoPct ?? 100) < 92 ? "alta" : "media",
       area: "Comercial",
-      titulo: `${d.depto} al ${d.cumplimientoPct}% de la meta`,
-      detalle: `Faltan ${Math.abs(d.brecha ?? 0).toFixed(1)} ML para la meta Ene–Sep 2026.`,
+      titulo: `${d.depto} al ${n(d.cumplimientoPct ?? 0)}% de la meta`,
+      detalle: `Faltan ${n(Math.abs(d.brecha ?? 0))} ML para la meta Ene–Sep 2026.`,
       pregunta: `¿Por qué ${d.depto} está bajo meta y qué haría para cerrar la brecha?`,
       enlace: `/comercial?tab=territorio&depto=${encodeURIComponent(d.depto)}`,
     });
@@ -77,7 +79,7 @@ export function detectarAlertas(): Alerta[] {
       id: "rio",
       severidad: "alta",
       area: "Logística",
-      titulo: `Río Paraguay en ${nivelRioParaguayM} m`,
+      titulo: `Río Paraguay en ${n(nivelRioParaguayM, 2)} m`,
       detalle:
         "Bajante: las importaciones fluviales cayeron y sube la dependencia del transporte terrestre.",
       pregunta: "¿Qué riesgos plantea el nivel del río?",
@@ -91,7 +93,7 @@ export function detectarAlertas(): Alerta[] {
       id: "precio",
       severidad: "baja",
       area: "Mercado",
-      titulo: `Diésel Petropar ${redondear(brecha, 1)}% bajo el mercado`,
+      titulo: `Diésel Petropar ${n(brecha)}% bajo el mercado`,
       detalle: `Gs ${ultimo.petroparDiesel.toLocaleString("es-PY")} vs. Gs ${ultimo.mercadoDiesel.toLocaleString("es-PY")} por litro; Brent en USD ${ultimo.brent}.`,
       pregunta: "Compara nuestro precio de diésel con el mercado",
       enlace: "/mercado",
@@ -105,10 +107,7 @@ export function detectarAlertas(): Alerta[] {
       severidad: "media",
       area: "Red",
       titulo: `${bajoPotencial.length} estaciones bajo el 60% de su potencial`,
-      detalle: `Potencial no capturado: ${redondear(
-        bajoPotencial.reduce((s, e) => s + e.potencialMl - e.ventasMl, 0),
-        1,
-      )} ML en Ene–Sep 2026.`,
+      detalle: `Potencial no capturado: ${n(bajoPotencial.reduce((s, e) => s + e.potencialMl - e.ventasMl, 0))} ML en Ene–Sep 2026.`,
       pregunta: "¿Qué estaciones están más lejos de su potencial y por qué?",
       enlace: "/soluciones/estaciones",
     });
@@ -134,7 +133,7 @@ export function detectarAlertas(): Alerta[] {
       id: "meta-nacional",
       severidad: ytd.cumplimientoPct < 95 ? "alta" : "media",
       area: "Comercial",
-      titulo: `Líquidos al ${ytd.cumplimientoPct}% de la meta acumulada`,
+      titulo: `Líquidos al ${n(ytd.cumplimientoPct)}% de la meta acumulada`,
       detalle: `${ytd.actual.toLocaleString("es-PY")} ML vs. meta de ${ytd.meta?.toLocaleString("es-PY")} ML (Ene–Sep 2026).`,
       pregunta: "¿Cuál es la brecha acumulada contra la meta?",
       enlace: "/comercial?tab=metas",

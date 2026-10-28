@@ -278,7 +278,9 @@ export function construirGrafico(p: ParametrosGrafico): ChartSpec {
       const c = competenciaVsAprovechamiento();
       return {
         ...base,
-        titulo: titulo(`Competencia vs. aprovechamiento · r = ${c.r}`),
+        titulo: titulo(
+          `Competencia vs. aprovechamiento · r = ${c.r.toLocaleString("es-PY", { maximumFractionDigits: 2 })}`,
+        ),
         tipo: "dispersion",
         unidad: "%",
         x: "competidores",

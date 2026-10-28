@@ -23,10 +23,9 @@ const soluciones = [
       "Estaciones por debajo de su potencial",
     ],
     needs:
-      "Ubicación de las estaciones, ventas por estación y datos de demanda del entorno. El mapa actual muestra departamentos, no estaciones.",
-    status: "Requiere datos por estación",
-    to: "/comercial",
-    action: "Ver análisis comerciales",
+      "Para producción: ubicación real de las estaciones, ventas por estación y datos de demanda del entorno. La demo usa 158 estaciones ficticias.",
+    status: "Demo navegable · requiere datos por estación",
+    to: "/soluciones/estaciones",
   },
   {
     title: "Evaluador de sitios",
@@ -40,8 +39,9 @@ const soluciones = [
       "Demanda proyectada y comparación de sitios",
     ],
     needs:
-      "Datos de tráfico, demografía, competidores y un modelo de demanda validado. La evaluación de direcciones aún no está conectada.",
-    status: "Pendiente de integración",
+      "Para producción: datos de tráfico, demografía, competidores y un modelo de demanda validado. La demo usa un puntaje ilustrativo con factores explícitos.",
+    status: "Demo navegable · modelo ilustrativo",
+    to: "/soluciones/evaluador",
   },
   {
     title: "Radar de competencia",
@@ -55,10 +55,9 @@ const soluciones = [
       "Zonas sin presencia de Petropar",
     ],
     needs:
-      "Un registro geolocalizado y actualizado de estaciones de Petropar y de los emblemas privados. El reporte de mercado disponible utiliza datos de ejemplo.",
-    status: "Requiere datos de competencia",
-    to: "/mercado",
-    action: "Ver reporte de mercado",
+      "Para producción: un registro geolocalizado y actualizado de estaciones de Petropar y de los emblemas privados. La demo usa 298 estaciones ficticias.",
+    status: "Demo navegable · requiere registro de competencia",
+    to: "/soluciones/competencia",
   },
   {
     title: "Radar de clientes B2B",
@@ -72,10 +71,9 @@ const soluciones = [
       "Priorización para convenios y suministro",
     ],
     needs:
-      "Un directorio autorizado de empresas, sus ubicaciones y la red de estaciones. No hay una fuente de prospectos conectada actualmente.",
-    status: "Requiere directorio de empresas",
-    to: "/operadores",
-    action: "Ver análisis de operadores",
+      "Para producción: un directorio autorizado de empresas y sus ubicaciones. La demo usa 120 empresas ficticias.",
+    status: "Demo navegable · requiere directorio de empresas",
+    to: "/soluciones/b2b",
   },
   {
     title: "Consulta sobre SAP",
@@ -90,9 +88,8 @@ const soluciones = [
     ],
     needs:
       "Conexión autorizada a SAP, permisos de acceso y definiciones de negocio. Arandu está disponible con datos ficticios; no consulta SAP ni créditos reales.",
-    status: "SAP no conectado",
-    to: "/chat",
-    action: "Conversar con Arandu · demo",
+    status: "Demo navegable · SAP no conectado",
+    to: "/soluciones/sap",
   },
 ] as const;
 
@@ -101,14 +98,16 @@ export function HubSolutions() {
     <section aria-labelledby="solutions-title" className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-chart-4">
+          <p className="text-xs font-semibold uppercase tracking-widest text-chart-4 dark:text-sidebar-primary">
             Inteligencia para decidir
           </p>
           <h2 id="solutions-title" className="mt-1 text-2xl font-bold">
             Soluciones Petropar
           </h2>
         </div>
-        <span className="text-sm text-muted-foreground">5 soluciones · propuesta de valor</span>
+        <span className="text-sm text-muted-foreground">
+          5 módulos navegables · datos ficticios
+        </span>
       </div>
       <div className="grid gap-4 [grid-auto-rows:1fr] md:grid-cols-2 xl:grid-cols-3">
         {soluciones.map((solution) => {
@@ -135,46 +134,43 @@ export function HubSolutions() {
                   <Plug className="size-3.5 shrink-0" />
                   {solution.status}
                 </p>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" className="w-full justify-between">
-                      Ver solución <ArrowUpRight className="size-4" />
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-h-[85dvh] w-[calc(100%-2rem)] overflow-y-auto rounded-lg">
-                    <DialogHeader>
-                      <DialogTitle className="pr-5 leading-snug">{solution.title}</DialogTitle>
-                      <DialogDescription className="pt-2 leading-relaxed">
-                        {solution.description}
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div>
-                      <h4 className="text-sm font-semibold">Análisis propuestos</h4>
-                      <ul className="mt-3 space-y-3 text-sm">
-                        {solution.outputs.map((output) => (
-                          <li key={output} className="flex items-start gap-2">
-                            <Check className="mt-0.5 size-4 shrink-0 text-success" />
-                            {output}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div className="border-t pt-4">
-                      <h4 className="text-sm font-semibold">Datos y conexiones necesarios</h4>
-                      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                        {solution.needs}
-                      </p>
-                    </div>
-                    {"to" in solution && (
-                      <Button asChild className="h-auto min-h-10 whitespace-normal">
-                        <Link to={solution.to}>
-                          {solution.action}
-                          <ArrowUpRight className="size-4 shrink-0" />
-                        </Link>
-                      </Button>
-                    )}
-                  </DialogContent>
-                </Dialog>
+                <div className="flex gap-2">
+                  <Button asChild className="flex-1 justify-between">
+                    <Link to={solution.to as never}>
+                      Abrir módulo <ArrowUpRight className="size-4" />
+                    </Link>
+                  </Button>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline">Detalle</Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-h-[85dvh] w-[calc(100%-2rem)] overflow-y-auto rounded-lg">
+                      <DialogHeader>
+                        <DialogTitle className="pr-5 leading-snug">{solution.title}</DialogTitle>
+                        <DialogDescription className="pt-2 leading-relaxed">
+                          {solution.description}
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div>
+                        <h4 className="text-sm font-semibold">Análisis incluidos en la demo</h4>
+                        <ul className="mt-3 space-y-3 text-sm">
+                          {solution.outputs.map((output) => (
+                            <li key={output} className="flex items-start gap-2">
+                              <Check className="mt-0.5 size-4 shrink-0 text-success" />
+                              {output}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="border-t pt-4">
+                        <h4 className="text-sm font-semibold">Datos y conexiones necesarios</h4>
+                        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                          {solution.needs}
+                        </p>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </div>
             </article>
           );

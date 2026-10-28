@@ -18,6 +18,11 @@ import { Route as PresentacionRouteImport } from './routes/presentacion'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as ChatIndexRouteImport } from './routes/chat.index'
 import { Route as ChatThreadIdRouteImport } from './routes/chat.$threadId'
+import { Route as SolucionesB2bRouteImport } from './routes/soluciones.b2b'
+import { Route as SolucionesCompetenciaRouteImport } from './routes/soluciones.competencia'
+import { Route as SolucionesEstacionesRouteImport } from './routes/soluciones.estaciones'
+import { Route as SolucionesEvaluadorRouteImport } from './routes/soluciones.evaluador'
+import { Route as SolucionesSapRouteImport } from './routes/soluciones.sap'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -64,6 +69,31 @@ const ChatThreadIdRoute = ChatThreadIdRouteImport.update({
   path: '/chat/$threadId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SolucionesB2bRoute = SolucionesB2bRouteImport.update({
+  id: '/soluciones/b2b',
+  path: '/soluciones/b2b',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SolucionesCompetenciaRoute = SolucionesCompetenciaRouteImport.update({
+  id: '/soluciones/competencia',
+  path: '/soluciones/competencia',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SolucionesEstacionesRoute = SolucionesEstacionesRouteImport.update({
+  id: '/soluciones/estaciones',
+  path: '/soluciones/estaciones',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SolucionesEvaluadorRoute = SolucionesEvaluadorRouteImport.update({
+  id: '/soluciones/evaluador',
+  path: '/soluciones/evaluador',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SolucionesSapRoute = SolucionesSapRouteImport.update({
+  id: '/soluciones/sap',
+  path: '/soluciones/sap',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -74,6 +104,11 @@ export interface FileRoutesByFullPath {
   '/presentacion': typeof PresentacionRoute
   '/api/chat': typeof ApiChatRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
+  '/soluciones/b2b': typeof SolucionesB2bRoute
+  '/soluciones/competencia': typeof SolucionesCompetenciaRoute
+  '/soluciones/estaciones': typeof SolucionesEstacionesRoute
+  '/soluciones/evaluador': typeof SolucionesEvaluadorRoute
+  '/soluciones/sap': typeof SolucionesSapRoute
   '/chat/': typeof ChatIndexRoute
 }
 export interface FileRoutesByTo {
@@ -85,6 +120,11 @@ export interface FileRoutesByTo {
   '/presentacion': typeof PresentacionRoute
   '/api/chat': typeof ApiChatRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
+  '/soluciones/b2b': typeof SolucionesB2bRoute
+  '/soluciones/competencia': typeof SolucionesCompetenciaRoute
+  '/soluciones/estaciones': typeof SolucionesEstacionesRoute
+  '/soluciones/evaluador': typeof SolucionesEvaluadorRoute
+  '/soluciones/sap': typeof SolucionesSapRoute
   '/chat': typeof ChatIndexRoute
 }
 export interface FileRoutesById {
@@ -97,6 +137,11 @@ export interface FileRoutesById {
   '/presentacion': typeof PresentacionRoute
   '/api/chat': typeof ApiChatRoute
   '/chat/$threadId': typeof ChatThreadIdRoute
+  '/soluciones/b2b': typeof SolucionesB2bRoute
+  '/soluciones/competencia': typeof SolucionesCompetenciaRoute
+  '/soluciones/estaciones': typeof SolucionesEstacionesRoute
+  '/soluciones/evaluador': typeof SolucionesEvaluadorRoute
+  '/soluciones/sap': typeof SolucionesSapRoute
   '/chat/': typeof ChatIndexRoute
 }
 export interface FileRouteTypes {
@@ -110,6 +155,11 @@ export interface FileRouteTypes {
     | '/presentacion'
     | '/api/chat'
     | '/chat/$threadId'
+    | '/soluciones/b2b'
+    | '/soluciones/competencia'
+    | '/soluciones/estaciones'
+    | '/soluciones/evaluador'
+    | '/soluciones/sap'
     | '/chat/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -121,6 +171,11 @@ export interface FileRouteTypes {
     | '/presentacion'
     | '/api/chat'
     | '/chat/$threadId'
+    | '/soluciones/b2b'
+    | '/soluciones/competencia'
+    | '/soluciones/estaciones'
+    | '/soluciones/evaluador'
+    | '/soluciones/sap'
     | '/chat'
   id:
     | '__root__'
@@ -132,6 +187,11 @@ export interface FileRouteTypes {
     | '/presentacion'
     | '/api/chat'
     | '/chat/$threadId'
+    | '/soluciones/b2b'
+    | '/soluciones/competencia'
+    | '/soluciones/estaciones'
+    | '/soluciones/evaluador'
+    | '/soluciones/sap'
     | '/chat/'
   fileRoutesById: FileRoutesById
 }
@@ -144,6 +204,11 @@ export interface RootRouteChildren {
   PresentacionRoute: typeof PresentacionRoute
   ApiChatRoute: typeof ApiChatRoute
   ChatThreadIdRoute: typeof ChatThreadIdRoute
+  SolucionesB2bRoute: typeof SolucionesB2bRoute
+  SolucionesCompetenciaRoute: typeof SolucionesCompetenciaRoute
+  SolucionesEstacionesRoute: typeof SolucionesEstacionesRoute
+  SolucionesEvaluadorRoute: typeof SolucionesEvaluadorRoute
+  SolucionesSapRoute: typeof SolucionesSapRoute
   ChatIndexRoute: typeof ChatIndexRoute
 }
 
@@ -212,6 +277,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChatThreadIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/soluciones/b2b': {
+      id: '/soluciones/b2b'
+      path: '/soluciones/b2b'
+      fullPath: '/soluciones/b2b'
+      preLoaderRoute: typeof SolucionesB2bRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/soluciones/competencia': {
+      id: '/soluciones/competencia'
+      path: '/soluciones/competencia'
+      fullPath: '/soluciones/competencia'
+      preLoaderRoute: typeof SolucionesCompetenciaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/soluciones/estaciones': {
+      id: '/soluciones/estaciones'
+      path: '/soluciones/estaciones'
+      fullPath: '/soluciones/estaciones'
+      preLoaderRoute: typeof SolucionesEstacionesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/soluciones/evaluador': {
+      id: '/soluciones/evaluador'
+      path: '/soluciones/evaluador'
+      fullPath: '/soluciones/evaluador'
+      preLoaderRoute: typeof SolucionesEvaluadorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/soluciones/sap': {
+      id: '/soluciones/sap'
+      path: '/soluciones/sap'
+      fullPath: '/soluciones/sap'
+      preLoaderRoute: typeof SolucionesSapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -224,6 +324,11 @@ const rootRouteChildren: RootRouteChildren = {
   PresentacionRoute: PresentacionRoute,
   ApiChatRoute: ApiChatRoute,
   ChatThreadIdRoute: ChatThreadIdRoute,
+  SolucionesB2bRoute: SolucionesB2bRoute,
+  SolucionesCompetenciaRoute: SolucionesCompetenciaRoute,
+  SolucionesEstacionesRoute: SolucionesEstacionesRoute,
+  SolucionesEvaluadorRoute: SolucionesEvaluadorRoute,
+  SolucionesSapRoute: SolucionesSapRoute,
   ChatIndexRoute: ChatIndexRoute,
 }
 export const routeTree = rootRouteImport
