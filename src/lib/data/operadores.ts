@@ -48,6 +48,16 @@ export const operadores = [
 
 export const nombresOperadores = operadores.map((o) => o.operador);
 
+/** Nombres cortos para ejes de gráficos (los largos se recortan y se confunden entre sí). */
+export const nombreCortoOperador: Record<string, string> = {
+  "Emblemas Petropar Propias": "Red propia",
+  "Red Franquiciada Norte": "Franquicia Norte",
+  "Red Franquiciada Sur": "Franquicia Sur",
+  "Grandes Clientes Industriales": "Industriales",
+  "Distribuidores Mayoristas": "Mayoristas",
+  "Sector Público": "Sector público",
+};
+
 export const operadoresDetalle = operadores.map((o, i) => {
   const metaMl = Number((o.litrosMl / (o.cumplimientoPct / 100)).toFixed(2));
   return {

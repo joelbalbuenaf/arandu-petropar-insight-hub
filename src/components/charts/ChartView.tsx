@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Download, MessageSquareText, Table2 } from "lucide-react";
 import {
@@ -51,10 +51,46 @@ const leyenda = {
   formatter: (v: unknown) => <span style={{ color: "var(--foreground)" }}>{String(v)}</span>,
 } as const;
 
+const MAX_ETIQUETA = 18;
 const corto = (v: unknown) => {
   const s = String(v ?? "");
-  return s.length > 16 ? `${s.slice(0, 15)}…` : s;
+  return s.length > MAX_ETIQUETA ? `${s.slice(0, MAX_ETIQUETA - 1)}…` : s;
 };
+
+/** Ancho real del contenedor, para decidir cómo acomodar las etiquetas del eje X. */
+function useAncho() {
+  // Ref por callback: vuelve a medir si el contenedor se re-monta (por ejemplo, tras ver la tabla).
+  const [el, setEl] = useState<HTMLDivElement | null>(null);
+  const [ancho, setAncho] = useState(0);
+  useEffect(() => {
+    if (!el) return;
+    const obs = new ResizeObserver(([e]) => setAncho(e?.contentRect.width ?? 0));
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [el]);
+  return [setEl, ancho] as const;
+}
+
+const PX_POR_LETRA = 6.3; // texto de 11 px
+const SENO_40 = Math.sin((40 * Math.PI) / 180);
+
+/**
+ * Acomoda las etiquetas del eje X según el espacio por categoría: horizontales si entran,
+ * inclinadas a 40° si no, y salteadas si aun inclinadas se pisan.
+ */
+function disposicionEjeX(etiquetas: string[], ancho: number, mostrarTodas: boolean) {
+  const largo = Math.min(MAX_ETIQUETA, Math.max(1, ...etiquetas.map((e) => e.length)));
+  const anchoTexto = largo * PX_POR_LETRA;
+  const porCategoria = (Math.max(ancho, 200) - 64) / Math.max(1, etiquetas.length);
+  const inclinar = anchoTexto > porCategoria * 0.9;
+  // Inclinada, cada etiqueta ocupa en horizontal ~ su alto / sen(40°).
+  const salteo = inclinar ? Math.max(0, Math.ceil(18 / porCategoria) - 1) : 0;
+  return {
+    inclinar,
+    interval: mostrarTodas ? salteo : ("preserveStartEnd" as const),
+    alto: inclinar ? Math.round(16 + anchoTexto * SENO_40) : 28,
+  };
+}
 
 /** Renderiza un ChartSpec (datos ya calculados por la capa de datos). */
 export function ChartView({
@@ -71,9 +107,7 @@ export function ChartView({
 }) {
   const [tabla, setTabla] = useState(false);
   const formato = (v: unknown) => `${fmtNumero(v, 2)} ${spec.unidad}`;
-  const categorias = spec.datos.length;
-  const etiquetasLargas = spec.datos.some((d) => String(d[spec.x] ?? "").length > 9);
-  const inclinar = categorias > 6 && etiquetasLargas;
+  const [contenedor, ancho] = useAncho();
 
   // Banda del intervalo (mínimo/máximo) → un área de rango; el resto, series normales.
   const banda = spec.series.filter((s) => s.estilo === "banda");
@@ -149,20 +183,26 @@ export function ChartView({
     );
   } else {
     const barras = spec.tipo === "barras";
+    const eje = disposicionEjeX(
+      spec.datos.map((d) => String(d[spec.x] ?? "")),
+      ancho,
+      barras,
+    );
     grafico = (
       <ComposedChart
         data={spec.datos}
-        margin={{ top: 8, right: 12, bottom: inclinar ? 24 : 4, left: 0 }}
+        margin={{ top: 8, right: 16, bottom: 4, left: eje.inclinar ? 8 : 0 }}
       >
         <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
         <XAxis
           dataKey={spec.x}
           {...ejes}
-          interval={barras ? 0 : "preserveStartEnd"}
+          interval={eje.interval}
+          minTickGap={4}
           tickFormatter={corto}
-          angle={inclinar ? -35 : 0}
-          textAnchor={inclinar ? "end" : "middle"}
-          height={inclinar ? 64 : 28}
+          angle={eje.inclinar ? -40 : 0}
+          textAnchor={eje.inclinar ? "end" : "middle"}
+          height={eje.alto}
         />
         <YAxis
           width={52}
@@ -326,7 +366,7 @@ export function ChartView({
           </table>
         </div>
       ) : (
-        <div style={{ height: alto }} className="w-full">
+        <div ref={contenedor} style={{ height: alto }} className="w-full">
           <ResponsiveContainer>{grafico}</ResponsiveContainer>
         </div>
       )}

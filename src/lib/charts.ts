@@ -8,6 +8,7 @@ import {
   FILTROS_POR_DEFECTO,
   mixProductos,
   nombreFiltroProducto,
+  nombreCortoOperador,
   nombreForecast,
   normalizarFiltros,
   operadoresDetalle,
@@ -222,8 +223,11 @@ export function construirGrafico(p: ParametrosGrafico): ChartSpec {
         titulo: titulo("Operadores · realizado vs. meta · Ene–Sep 2026"),
         tipo: "barras",
         unidad: "ML",
-        x: "operador",
-        datos: operadoresDetalle,
+        x: "nombre",
+        datos: operadoresDetalle.map((o) => ({
+          ...o,
+          nombre: nombreCortoOperador[o.operador] ?? o.operador,
+        })),
         series: [
           { clave: "litrosMl", nombre: "Realizado" },
           { clave: "metaMl", nombre: "Meta" },
@@ -237,8 +241,11 @@ export function construirGrafico(p: ParametrosGrafico): ChartSpec {
         titulo: titulo("Presupuesto comercial vs. ejecutado · USD M"),
         tipo: "barras",
         unidad: "USD M",
-        x: "operador",
-        datos: presupuestoComercial,
+        x: "nombre",
+        datos: presupuestoComercial.map((o) => ({
+          ...o,
+          nombre: nombreCortoOperador[o.operador] ?? o.operador,
+        })),
         series: [
           { clave: "presupuesto", nombre: "Presupuesto" },
           { clave: "ejecutado", nombre: "Ejecutado" },
@@ -296,8 +303,9 @@ export function construirGrafico(p: ParametrosGrafico): ChartSpec {
         titulo: titulo("Capacidad y stock por planta · m³"),
         tipo: "barras",
         unidad: "m³",
-        x: "planta",
-        datos: plantas,
+        x: "nombre",
+        // Sin el paréntesis: "Mauricio J. Troche (alcohol)" → "Mauricio J. Troche".
+        datos: plantas.map((p) => ({ ...p, nombre: p.planta.replace(/ \(.*\)$/, "") })),
         series: [
           { clave: "capacidadM3", nombre: "Capacidad" },
           { clave: "stockM3", nombre: "Stock" },
@@ -377,11 +385,12 @@ export function construirGrafico(p: ParametrosGrafico): ChartSpec {
         titulo: titulo("Prospectos B2B por sector"),
         tipo: "barras",
         unidad: "m³/mes",
-        x: "sector",
+        x: "nombre",
         datos: sectores.map((s) => {
           const lista = prospectos.filter((x) => x.sector === s && x.estado !== "Cliente actual");
           return {
             sector: s,
+            nombre: s.replace("Transporte de ", "Transp. "),
             prospectos: lista.length,
             consumoM3Mes: lista.reduce((t, x) => t + x.consumoM3Mes, 0),
           };
