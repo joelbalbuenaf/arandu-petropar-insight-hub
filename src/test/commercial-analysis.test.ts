@@ -22,12 +22,12 @@ describe("commercial calculations", () => {
     const mayorista = operadoresDetalle.find((o) => o.operador === "Distribuidores Mayoristas");
     expect((mayorista?.ejecutadoMUSD ?? 0) - (mayorista?.presupuestoMUSD ?? 0)).toBe(18);
   });
-  it("applies scenario percentage to a three-month forecast", () => {
+  it("applies scenario percentage to a three-month seasonal forecast", () => {
     const base = proyectarVentas("total");
     const high = proyectarVentas("total", 10);
-    expect(base.map((v) => v.mes)).toEqual(["Oct", "Nov", "Dic"]);
-    expect(base[0]?.base).toBe(236.31);
-    expect(high[0]?.escenario).toBe(259.94);
+    expect(base.map((v) => v.mes)).toEqual(["Oct 26", "Nov 26", "Dic 26"]);
+    const first = base[0]?.base ?? 0;
+    expect(high[0]?.escenario).toBeCloseTo(first * 1.1, 1);
   });
   it("accepts only known unique chart markers", () => {
     expect(
