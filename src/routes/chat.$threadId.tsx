@@ -2,11 +2,11 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useEffect, useRef, useState } from "react";
-import { Plus, Trash2, ChartNoAxesCombined } from "lucide-react";
+import { Plus, Printer, Trash2, ChartNoAxesCombined } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AnalysisExplorer } from "@/components/AnalysisExplorer";
-import { AnalyticalChart } from "@/components/AnalyticalChart";
-import { parseAnalyticalResponse } from "@/lib/analytical-questions";
+import { AranduMessage } from "@/components/arandu/AranduMessage";
+import type { AranduUIMessage } from "@/lib/arandu/writer";
 import { toast } from "sonner";
 import {
   Conversation,
@@ -14,7 +14,6 @@ import {
   ConversationEmptyState,
   ConversationScrollButton,
 } from "@/components/ai-elements/conversation";
-import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
 import {
   PromptInput,
   PromptInputFooter,
@@ -27,10 +26,12 @@ import {
   deleteThread,
   ensureThread,
   loadThreads,
+  tomarPreguntaPendiente,
   updateThread,
   type Thread,
 } from "@/lib/threads";
 import logo from "@/assets/arandu.png";
+import petroparLogo from "@/assets/petropar-logo.png";
 
 export const Route = createFileRoute("/chat/$threadId")({
   head: () => ({
@@ -64,8 +65,8 @@ function ChatPage() {
   }, [threadId]);
 
   return (
-    <div className="flex h-[calc(100vh-0px)] min-h-0">
-      <aside className="hidden w-64 shrink-0 flex-col border-r bg-card lg:flex">
+    <div className="flex h-dvh min-h-0 print:block print:h-auto">
+      <aside className="hidden w-64 shrink-0 flex-col border-r bg-card lg:flex print:hidden">
         <div className="p-3">
           <Button
             onClick={() => {
@@ -118,20 +119,28 @@ function ChatPage() {
 function ChatWindow({ thread }: { thread: Thread }) {
   const [input, setInput] = useState("");
   const [explore, setExplore] = useState(false);
+  const [modo, setModo] = useState<{ modo: "demo" | "claude"; modelo?: string } | null>(null);
   const ref = useRef<HTMLTextAreaElement>(null);
-  const { messages, sendMessage, status, stop } = useChat({
+  const enviada = useRef(false);
+  const navigate = useNavigate();
+  const { messages, sendMessage, status, stop } = useChat<AranduUIMessage>({
     id: thread.id,
-    messages: thread.messages,
-    transport: new DefaultChatTransport({ api: "/api/chat", body: { conversationId: thread.id } }),
+    messages: thread.messages as AranduUIMessage[],
+    transport: new DefaultChatTransport({ api: "/api/chat" }),
     onError: (e) => {
       const m = e.message || "";
-      if (m.includes("429")) toast.error("Demasiadas consultas, espera un momento.");
-      else if (m.includes("402"))
-        toast.error("Créditos de IA agotados. Recarga en Configuración → Planes y créditos.");
+      if (m.includes("429")) toast.error("Demasiadas consultas, esperá un momento.");
       else toast.error(m || "No se pudo obtener respuesta de Arandu.");
     },
   });
   const busy = status === "submitted" || status === "streaming";
+
+  useEffect(() => {
+    fetch("/api/chat")
+      .then((r) => r.json())
+      .then(setModo)
+      .catch(() => setModo(null));
+  }, []);
 
   useEffect(() => {
     if (status === "ready" || status === "error") {
@@ -142,20 +151,60 @@ function ChatWindow({ thread }: { thread: Thread }) {
 
   const send = (text: string) => {
     if (!text.trim() || busy) return;
-    sendMessage({ text });
+    void sendMessage({ text });
     setInput("");
   };
 
+  // Pregunta que llega desde un gráfico o una alerta: se envía una sola vez.
+  useEffect(() => {
+    if (enviada.current || messages.length) return;
+    // Diferido: con StrictMode el primer montaje se descarta y el envío se perdería.
+    const t = setTimeout(() => {
+      const pendiente = tomarPreguntaPendiente(thread.id);
+      if (pendiente) {
+        enviada.current = true;
+        send(pendiente);
+      }
+    }, 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <div className="flex min-w-0 flex-1 flex-col">
-      <header className="flex items-center gap-3 border-b bg-card px-4 py-3">
+      <header className="flex items-center gap-3 border-b bg-card px-4 py-3 print:hidden">
         <img src={logo} alt="Arandu" width={36} height={36} className="size-9 object-contain" />
         <div className="min-w-0 flex-1">
-          <p className="font-display font-semibold">Arandu</p>
-          <p className="text-xs text-muted-foreground">
+          <p className="flex items-center gap-2 font-display font-semibold">
+            Arandu
+            {modo && (
+              <span
+                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${modo.modo === "claude" ? "bg-success/15 text-success" : "bg-secondary text-secondary-foreground"}`}
+                title={
+                  modo.modo === "claude"
+                    ? `Respuestas generadas con ${modo.modelo}`
+                    : "Sin ANTHROPIC_API_KEY: respuestas calculadas con reglas, sin IA"
+                }
+              >
+                {modo.modo === "claude" ? "Claude" : "Modo demo"}
+              </span>
+            )}
+          </p>
+          <p className="truncate text-xs text-muted-foreground">
             Agente analítico de Petropar · Habla con tus datos
           </p>
         </div>
+        {messages.length > 0 && (
+          <Button
+            variant="outline"
+            size="icon"
+            title="Exportar conversación a PDF"
+            aria-label="Exportar conversación a PDF"
+            onClick={() => window.print()}
+          >
+            <Printer />
+          </Button>
+        )}
         <Button
           variant="outline"
           size="icon"
@@ -172,14 +221,22 @@ function ChatWindow({ thread }: { thread: Thread }) {
           aria-label="Nueva conversación"
           onClick={() => {
             const t = createThread();
-            window.location.assign(`/chat/${t.id}`);
+            void navigate({ to: "/chat/$threadId", params: { threadId: t.id } });
           }}
         >
           <Plus />
         </Button>
       </header>
+      <div className="hidden px-2 pb-4 print:block">
+        <img src={petroparLogo} alt="Petropar" width={160} height={48} />
+        <h1 className="mt-3 text-xl font-bold">Informe de Arandu · {thread.title}</h1>
+        <p className="text-xs text-muted-foreground">
+          Hub Analítico Petropar · datos de ejemplo (ficticios) ·{" "}
+          {new Date().toLocaleDateString("es-PY")}
+        </p>
+      </div>
       <Conversation className="flex-1">
-        <ConversationContent className="mx-auto w-full max-w-3xl">
+        <ConversationContent className="mx-auto w-full max-w-3xl gap-6">
           {messages.length === 0 ? (
             <ConversationEmptyState>
               <img
@@ -191,41 +248,28 @@ function ChatWindow({ thread }: { thread: Thread }) {
               />
               <h2 className="mt-2 text-2xl font-bold">Hola, soy Arandu</h2>
               <p className="text-muted-foreground">
-                Ventas · metas · presupuesto · forecast · oportunidades
+                Ventas · metas · forecast · estaciones · competencia · B2B · sitios
               </p>
               <p className="mb-6 mt-2 text-xs text-muted-foreground">
-                Datos ficticios · Ene–Sep 2026
+                Datos ficticios · Ene 2025 – Sep 2026
+                {modo?.modo === "demo" && " · modo demo sin IA"}
               </p>
               <AnalysisExplorer onAsk={send} disabled={busy} />
             </ConversationEmptyState>
           ) : (
-            messages.map((m) => (
-              <Message key={m.id} from={m.role}>
-                <MessageContent className="group-[.is-user]:bg-primary group-[.is-user]:text-primary-foreground">
-                  {m.parts.map((p, i) => {
-                    if (p.type !== "text") return null;
-                    const parsed =
-                      m.role === "assistant"
-                        ? parseAnalyticalResponse(p.text)
-                        : { text: p.text, charts: [] };
-                    return (
-                      <div key={i} className="min-w-0 space-y-5">
-                        <MessageResponse>{parsed.text}</MessageResponse>
-                        {parsed.charts.map((id) => (
-                          <div key={id} className="border-t pt-5">
-                            <AnalyticalChart id={id} />
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })}
-                </MessageContent>
-              </Message>
+            messages.map((m, i) => (
+              <AranduMessage
+                key={m.id}
+                mensaje={m}
+                ultimo={i === messages.length - 1}
+                enCurso={busy && i === messages.length - 1}
+                onPreguntar={send}
+              />
             ))
           )}
           {status === "submitted" && <Shimmer>Arandu está analizando los datos…</Shimmer>}
           {explore && messages.length > 0 && (
-            <div className="mt-6 border-t pt-6">
+            <div className="mt-6 border-t pt-6 print:hidden">
               <AnalysisExplorer
                 onAsk={(text) => {
                   send(text);
@@ -238,14 +282,14 @@ function ChatWindow({ thread }: { thread: Thread }) {
         </ConversationContent>
         <ConversationScrollButton />
       </Conversation>
-      <div className="mx-auto w-full max-w-3xl p-4">
+      <div className="mx-auto w-full max-w-3xl p-4 print:hidden">
         <PromptInput onSubmit={(msg) => send(msg.text)}>
           <PromptInputTextarea
             ref={ref}
             autoFocus
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Pregúntale a Arandu sobre tus datos…"
+            placeholder="Preguntale a Arandu sobre tus datos…"
           />
           <PromptInputFooter className="justify-end">
             <PromptInputSubmit status={status} onStop={stop} disabled={!busy && !input.trim()} />

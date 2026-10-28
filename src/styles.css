@@ -93,6 +93,14 @@
   --chart-3: oklch(0.56 0.22 30);
   --chart-4: oklch(0.36 0.22 272);
   --chart-5: oklch(0.65 0.05 262);
+  /* Paleta categórica de gráficos (validada: CVD, banda de luminosidad y contraste). */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-muted: #8b8a85;
+  --series-band: color-mix(in oklab, #2a78d6 16%, transparent);
   --sidebar: oklch(0.24 0.1 264);
   --sidebar-foreground: oklch(0.92 0.01 264);
   --sidebar-primary: oklch(0.8 0.2 135);
@@ -141,6 +149,13 @@
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
+  --series-muted: #9a988f;
+  --series-band: color-mix(in oklab, #3987e5 22%, transparent);
   --sidebar: oklch(0.208 0.042 265.755);
   --sidebar-foreground: oklch(0.984 0.003 247.858);
   --sidebar-primary: oklch(0.488 0.243 264.376);
@@ -1036,4 +1051,33 @@
   .deck-print .slide-content:last-child {
     break-after: auto;
   }
+}
+
+/* Respuestas de Arandu (markdown de Streamdown): listas visibles y tablas sobre fondo claro.
+   Streamdown usa bg-sidebar, que en este tema es azul oscuro. */
+.arandu-md ol {
+  list-style: decimal;
+  padding-left: 1.4rem;
+}
+.arandu-md ul {
+  list-style: disc;
+  padding-left: 1.4rem;
+}
+.arandu-md li {
+  margin: 0.2rem 0;
+}
+.arandu-md li::marker {
+  color: var(--muted-foreground);
+}
+.arandu-md [data-streamdown="table-wrapper"] {
+  background: var(--muted);
+  border-color: var(--border);
+}
+.arandu-md [data-streamdown="table-wrapper"] .bg-sidebar\/80 {
+  background: transparent;
+  border-color: transparent;
+}
+.arandu-md table td,
+.arandu-md table th {
+  font-variant-numeric: tabular-nums;
 }

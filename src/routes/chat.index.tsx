@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
-import { createThread, loadThreads } from "@/lib/threads";
+import { useEffect, useRef } from "react";
+import { createThread, guardarPreguntaPendiente, loadThreads } from "@/lib/threads";
 
 export const Route = createFileRoute("/chat/")({
   head: () => ({
@@ -17,14 +17,24 @@ export const Route = createFileRoute("/chat/")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
+  validateSearch: (search: Record<string, unknown>): { q?: string } =>
+    typeof search["q"] === "string" && search["q"] ? { q: search["q"].slice(0, 500) } : {},
   component: ChatIndex,
 });
 
 function ChatIndex() {
   const navigate = useNavigate();
+  const { q } = Route.useSearch();
+  // El ref evita crear dos conversaciones cuando React ejecuta el efecto dos veces (StrictMode).
+  const destino = useRef<string | null>(null);
   useEffect(() => {
-    const t = loadThreads()[0] ?? createThread();
-    navigate({ to: "/chat/$threadId", params: { threadId: t.id }, replace: true });
-  }, [navigate]);
+    // Con una pregunta (desde un gráfico o alerta) se abre una conversación nueva que la envía.
+    if (!destino.current) {
+      const t = q ? createThread() : (loadThreads()[0] ?? createThread());
+      if (q) guardarPreguntaPendiente(t.id, q);
+      destino.current = t.id;
+    }
+    void navigate({ to: "/chat/$threadId", params: { threadId: destino.current }, replace: true });
+  }, [navigate, q]);
   return null;
 }

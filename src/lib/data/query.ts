@@ -40,7 +40,9 @@ const coincideProducto = (p: Producto, f: FiltroProducto) =>
   f === "liquidos" ? (productosLiquidos as readonly string[]).includes(p) : p === f;
 
 /** Normaliza filtros que llegan de la URL o de la IA a valores válidos. */
-export function normalizarFiltros(f: Partial<FiltrosVentas>): FiltrosVentas {
+export function normalizarFiltros(f: {
+  [K in keyof FiltrosVentas]?: FiltrosVentas[K] | undefined;
+}): FiltrosVentas {
   const valido = (p: unknown, def: string) =>
     typeof p === "string" && periodos.includes(p) ? p : def;
   let desde = valido(f.desde, FILTROS_POR_DEFECTO.desde);

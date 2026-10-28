@@ -16,7 +16,7 @@ const nav = [
 export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen bg-background">
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground md:flex">
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground md:flex print:hidden">
         <div className="h-1.5 bg-brand-stripe" />
         <div className="px-5 py-6">
           <div className="rounded-lg bg-card p-3">
@@ -61,7 +61,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </Link>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
-        <nav className="flex items-center gap-2 overflow-x-auto bg-sidebar p-3 md:hidden">
+        <nav className="flex items-center gap-2 overflow-x-auto bg-sidebar p-3 md:hidden print:hidden">
           <img
             src={petroparLogo}
             alt="Petropar"

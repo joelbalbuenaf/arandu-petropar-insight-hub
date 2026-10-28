@@ -349,5 +349,9 @@ export const rutas: { nombre: string; puntos: [number, number][] }[] = [
 ];
 
 export function normalizar(texto: string) {
-  return texto.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+  return texto
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
 }

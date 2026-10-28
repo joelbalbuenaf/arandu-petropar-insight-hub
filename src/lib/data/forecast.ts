@@ -119,6 +119,15 @@ export function serieConProyeccion(producto: ProductoForecast = "total", ajusteP
     mes: etiquetaCorta(periodo),
     real: redondear(valorEn(producto, periodo), 2),
   }));
+  // El último mes real también abre la proyección, para que las líneas empalmen.
+  const ultimo = historico[historico.length - 1];
+  if (ultimo)
+    Object.assign(ultimo, {
+      base: ultimo.real,
+      minimo: ultimo.real,
+      maximo: ultimo.real,
+      ...(ajustePct ? { escenario: ultimo.real } : {}),
+    });
   return [
     ...historico,
     ...p.meses.map((m) => ({

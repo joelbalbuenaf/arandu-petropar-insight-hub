@@ -52,3 +52,25 @@ export function updateThread(id: string, messages: UIMessage[]) {
 export function deleteThread(id: string) {
   saveThreads(loadThreads().filter((t) => t.id !== id));
 }
+
+// Pregunta pendiente para una conversación nueva (desde un gráfico o alerta). Se pasa por
+// sessionStorage para no depender de la URL, que al cambiar remonta la ventana del chat.
+const PENDIENTE = "petropar-arandu-pendiente";
+
+export function guardarPreguntaPendiente(threadId: string, pregunta: string) {
+  sessionStorage.setItem(PENDIENTE, JSON.stringify({ threadId, pregunta }));
+}
+
+export function tomarPreguntaPendiente(threadId: string): string | null {
+  try {
+    const v = JSON.parse(sessionStorage.getItem(PENDIENTE) ?? "null") as {
+      threadId: string;
+      pregunta: string;
+    } | null;
+    if (v?.threadId !== threadId) return null;
+    sessionStorage.removeItem(PENDIENTE);
+    return v.pregunta;
+  } catch {
+    return null;
+  }
+}
