@@ -1,0 +1,20 @@
+# Blueprint de Render: New → Blueprint → elegir este repositorio.
+services:
+  - type: web
+    name: petropar-hub
+    runtime: node
+    plan: free
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/chat
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Opcional: sin key, Arandu responde en modo demo. Se carga en el panel de Render (no en el repo).
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ARANDU_MODEL
+        value: claude-opus-5-5
+      - key: ARANDU_EFFORT
+        value: medium
