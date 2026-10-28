@@ -14,7 +14,7 @@ services:
       # Opcional: sin key, Arandu responde en modo demo. Se carga en el panel de Render (no en el repo).
       - key: ANTHROPIC_API_KEY
         sync: false
-      # Acceso al Hub: usuario y contraseña se cargan en el panel de Render.
+      # Acceso al Hub: por defecto usa las credenciales del código; cargarlas acá las reemplaza.
       - key: HUB_USUARIO
         sync: false
       - key: HUB_CLAVE

@@ -1,4 +1,5 @@
-// Acceso con usuario y contraseña definidos por variables de entorno (HUB_USUARIO, HUB_CLAVE).
+// Acceso con usuario y contraseña: por defecto en el código, o por variables de entorno
+// (HUB_USUARIO, HUB_CLAVE) que tienen prioridad.
 // La sesión es una cookie HttpOnly firmada con HMAC-SHA256. Solo usa Web Crypto, así que el
 // módulo puede importarse desde start.ts sin arrastrar APIs de Node al cliente.
 
@@ -18,8 +19,15 @@ export const esRutaPublica = (pathname: string) => PUBLICAS.includes(pathname);
 
 const env = (k: string) => (typeof process !== "undefined" ? process.env[k] : undefined);
 
-/** Sin HUB_USUARIO y HUB_CLAVE el Hub queda abierto (útil en desarrollo). */
-export const authConfigurada = () => Boolean(env("HUB_USUARIO") && env("HUB_CLAVE"));
+// Credenciales por defecto (decisión del equipo: el login funciona en cualquier deploy sin
+// configurar nada). HUB_USUARIO y HUB_CLAVE, si están definidas, tienen prioridad.
+const USUARIO_POR_DEFECTO = "petropar";
+const CLAVE_POR_DEFECTO = "Arandu-de95a2";
+const usuarioHub = () => env("HUB_USUARIO") || USUARIO_POR_DEFECTO;
+const claveHub = () => env("HUB_CLAVE") || CLAVE_POR_DEFECTO;
+
+/** El acceso siempre está protegido; se mantiene la función para el middleware y la API. */
+export const authConfigurada = () => Boolean(usuarioHub() && claveHub());
 
 const codificador = new TextEncoder();
 
@@ -35,8 +43,7 @@ function desdeBase64url(texto: string) {
 }
 
 // Sin HUB_SECRETO se deriva de las credenciales: cambiar la clave invalida las sesiones.
-const secreto = () =>
-  env("HUB_SECRETO") || `${env("HUB_USUARIO")}:${env("HUB_CLAVE")}:petropar-hub`;
+const secreto = () => env("HUB_SECRETO") || `${usuarioHub()}:${claveHub()}:petropar-hub`;
 
 async function firmar(texto: string) {
   const clave = await crypto.subtle.importKey(
@@ -61,7 +68,7 @@ function iguales(a: string, b: string) {
 export async function credencialesValidas(usuario: string, clave: string) {
   const [a, b] = await Promise.all([
     firmar(`${usuario}\u0000${clave}`),
-    firmar(`${env("HUB_USUARIO") ?? ""}\u0000${env("HUB_CLAVE") ?? ""}`),
+    firmar(`${usuarioHub()}\u0000${claveHub()}`),
   ]);
   return authConfigurada() && iguales(a, b);
 }

@@ -46,10 +46,11 @@ describe("acceso con usuario y contraseña", () => {
     expect(await verificarSesion(`hub_sesion=${token}`)).toBeNull();
   });
 
-  it("sin variables el Hub queda abierto y no acepta credenciales", async () => {
+  it("sin variables usa las credenciales por defecto y sigue protegido", async () => {
     vi.stubEnv("HUB_USUARIO", "");
     vi.stubEnv("HUB_CLAVE", "");
-    expect(authConfigurada()).toBe(false);
+    expect(authConfigurada()).toBe(true);
+    expect(await credencialesValidas("petropar", "Arandu-de95a2")).toBe(true);
     expect(await credencialesValidas("", "")).toBe(false);
   });
 
